@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trendwise Business Services — Build Roadmap</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #f8f8f7;
+    --surface: #ffffff;
+    --surface-alt: #f3f3f1;
+    --border: #e4e4e0;
+    --border-strong: #c8c8c2;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666660;
+    --text-muted: #999992;
+    --radius: 8px;
+    --accent: #1D9E75;
+    --accent-bg: #E1F5EE;
+    --accent-txt: #0F6E56;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141413;
+      --surface: #1e1e1c;
+      --surface-alt: #262624;
+      --border: #2e2e2c;
+      --border-strong: #444440;
+      --text-primary: #f0f0ec;
+      --text-secondary: #a0a09a;
+      --text-muted: #666660;
+      --accent-bg: #0d2b20;
+      --accent-txt: #4ecfa0;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text-primary); min-height: 100vh; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .logo { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+  .logo span { color: var(--accent); }
+  .topbar-right { display: flex; align-items: center; gap: 8px; }
+  .btn { font-size: 12px; padding: 6px 12px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background .15s; }
+  .btn:hover { background: var(--surface-alt); }
+  .btn.accent { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.accent:hover { opacity: .9; }
+  .main { max-width: 780px; margin: 0 auto; padding: 32px 20px 80px; }
+  .page-header { margin-bottom: 28px; }
+  .page-title { font-size: 22px; font-weight: 600; margin-bottom: 4px; }
+  .page-sub { font-size: 14px; color: var(--text-secondary); }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; text-align: center; }
+  .stat-val { font-size: 26px; font-weight: 600; color: var(--text-primary); }
+  .stat-lbl { font-size: 11px; color: var(--text-secondary); margin-top: 2px; text-transform: uppercase; letter-spacing: .04em; }
+  .progress-wrap { margin-bottom: 28px; }
+  .progress-header { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+  .progress-track { height: 6px; background: var(--surface-alt); border-radius: 3px; overflow: hidden; border: 1px solid var(--border); }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .4s ease; }
+  .phase { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+  .phase-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; user-select: none; transition: background .15s; }
+  .phase-header:hover { background: var(--surface-alt); }
+  .phase-dot { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; font-weight: 600; }
+  .phase-meta { flex: 1; min-width: 0; }
+  .phase-title { font-size: 14px; font-weight: 600; }
+  .phase-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .phase-bar-wrap { height: 3px; background: var(--surface-alt); border-radius: 2px; margin-top: 6px; }
+  .phase-bar { height: 3px; border-radius: 2px; transition: width .4s; }
+  .badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+  .chevron { color: var(--text-muted); transition: transform .2s; font-size: 18px; flex-shrink: 0; }
+  .chevron.open { transform: rotate(180deg); }
+  .phase-body { max-height: 0; overflow: hidden; transition: max-height .35s ease; }
+  .phase-body.open { max-height: 3000px; }
+  .phase-inner { padding: 4px 16px 16px; }
+  .callout { background: var(--accent-bg); border: 1px solid var(--accent); border-left: 3px solid var(--accent); border-radius: var(--radius); padding: 10px 12px; margin: 8px 0 12px; font-size: 12px; color: var(--accent-txt); line-height: 1.6; }
+  .section-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin: 14px 0 6px; }
+  .tasks { display: flex; flex-direction: column; gap: 5px; }
+  .task { display: flex; align-items: flex-start; gap: 10px; padding: 9px 11px; border-radius: var(--radius); background: var(--surface-alt); border: 1px solid var(--border); cursor: pointer; transition: border-color .15s, opacity .2s; }
+  .task:hover { border-color: var(--border-strong); }
+  .task.done { opacity: .55; }
+  .task-check { width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid var(--border-strong); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; transition: all .15s; }
+  .task.done .task-check { background: var(--accent); border-color: var(--accent); }
+  .task-check i { font-size: 11px; color: #fff; opacity: 0; }
+  .task.done .task-check i { opacity: 1; }
+  .task-text { font-size: 13px; line-height: 1.5; flex: 1; }
+  .task.done .task-text { text-decoration: line-through; color: var(--text-muted); }
+  .task-tag { font-size: 10px; padding: 2px 7px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; background: var(--bg); color: var(--text-muted); border: 1px solid var(--border); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--text-primary); color: var(--bg); font-size: 13px; padding: 10px 18px; border-radius: 20px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 999; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  @media (max-width: 500px) {
+    .stats { grid-template-columns: repeat(3,1fr); }
+    .stat-val { font-size: 20px; }
+    .badge { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">Trendwise <span>Business Services</span></div>
+  </div>
+  <div class="topbar-right">
+    <button class="btn" onclick="exportProgress()"><i class="ti ti-download"></i> Export</button>
+    <button class="btn" onclick="importProgress()"><i class="ti ti-upload"></i> Import</button>
+    <button class="btn" onclick="resetAll()"><i class="ti ti-refresh"></i> Reset</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="page-header">
+    <div class="page-title">Build Roadmap</div>
+    <div class="page-sub">Check off tasks as you complete them — progress saves automatically in your browser.</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-val" id="s-done">0</div><div class="stat-lbl">Done</div></div>
+    <div class="stat"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Total</div></div>
+    <div class="stat"><div class="stat-val" id="s-pct">0%</div><div class="stat-lbl">Complete</div></div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-header"><span>Overall progress</span><span id="p-label">0 of 0 tasks</span></div>
+    <div class="progress-track"><div class="progress-fill" id="p-fill" style="width:0%"></div></div>
+  </div>
+
+  <div id="phases"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'tw_roadmap_v1';
+
+const PHASES = [
+  {
+    id:"p0", title:"Phase 0 — This week", sub:"Outreach starts now, before the build is done",
+    badge:"Start immediately", badgeBg:"#E8F4E8", badgeTxt:"#2a6b2a", dotBg:"#1D9E75", dotTxt:"#fff", barColor:"#1D9E75",
+    sections:[
+      {label:"Outreach", tasks:[
+        {id:"t01", text:"Write your 10 target business list — Google \"[service] Las Vegas\" and pick the ones with no or bad sites", tag:"30 min"},
+        {id:"t02", text:"Draft your cold DM / text using the missed-call hook as the opener", tag:"15 min"},
+        {id:"t03", text:"Send 10 outreach messages — Instagram DM, text, or walk-in", tag:"Today"},
+        {id:"t04", text:"Follow up with any non-responses after 48 hours", tag:"Day 3"},
+      ]},
+      {label:"GHL setup", tasks:[
+        {id:"t05", text:"Create a TRENDWISE TEMPLATE — DO NOT USE sub-account in GHL", tag:"1 hr"},
+        {id:"t06", text:"Verify Stripe is connected and SaaS mode is accessible in agency settings", tag:"30 min"},
+      ]},
+    ]
+  },
+  {
+    id:"p1", title:"Phase 1 — Template sub-account", sub:"Build once, clone forever — the core product",
+    badge:"Week 1–2", badgeBg:"#E6F1FB", badgeTxt:"#185FA5", dotBg:"#378ADD", dotTxt:"#fff", barColor:"#378ADD",
+    sections:[
+      {label:"5 core workflows", tasks:[
+        {id:"t11", text:"Workflow 1: New lead notification — texts owner instantly on form submit or chat capture", tag:"GHL"},
+        {id:"t12", text:"Workflow 2: Missed-call text-back — auto-SMS within 30 seconds of missed call", tag:"GHL"},
+        {id:"t13", text:"Workflow 3: 2-step lead nurture — immediate welcome + 24hr follow-up if no reply", tag:"GHL"},
+        {id:"t14", text:"Workflow 4: Appointment confirmation + reminders (24hr + 2hr before)", tag:"GHL"},
+        {id:"t15", text:"Workflow 5: Review request — SMS fires 2hrs after Job Complete tag is applied", tag:"GHL"},
+      ]},
+      {label:"Website template", tasks:[
+        {id:"t16", text:"Build neutral one-page template in GHL AI Studio using the Trendwise copy template", tag:"GHL"},
+        {id:"t17", text:"Add all placeholder text: [BUSINESS NAME], [PHONE], [SERVICES LIST], [HOURS], etc.", tag:"2 hrs"},
+        {id:"t18", text:"Configure AI chat widget with default FAQ training prompt", tag:"1 hr"},
+        {id:"t19", text:"Test end-to-end: submit a test lead, confirm notification fires, check CRM entry", tag:"30 min"},
+      ]},
+      {label:"Clone checklist", tasks:[
+        {id:"t1a", text:"Write your 12-step client clone checklist — logo swap, placeholder replace, number connect, test, deliver", tag:"Doc"},
+        {id:"t1b", text:"Export a clean HTML copy of the template site and save to Drive — repeat for every client site built", tag:"Backup"},
+      ]},
+    ]
+  },
+  {
+    id:"p2", title:"Phase 2 — SaaS mode and billing", sub:"Automate recurring revenue collection",
+    badge:"Week 2–3", badgeBg:"#FAEEDA", badgeTxt:"#854F0B", dotBg:"#EF9F27", dotTxt:"#fff", barColor:"#EF9F27",
+    sections:[
+      {label:"GHL SaaS configurator", tasks:[
+        {id:"t21", text:"Create 3 pricing tiers: Starter $197 / Growth $297 / Pro $497", tag:"GHL"},
+        {id:"t22", text:"Set feature permissions per tier — lock Starter clients out of advanced settings", tag:"GHL"},
+        {id:"t23", text:"Map Stripe products to each GHL tier", tag:"GHL + Stripe"},
+        {id:"t24", text:"Enable white-label domain so clients log in to Trendwise portal, not GoHighLevel", tag:"GHL"},
+        {id:"t25", text:"Test the client signup flow from a fresh browser — confirm billing fires correctly", tag:"Test"},
+      ]},
+    ]
+  },
+  {
+    id:"p3", title:"Phase 3 — Onboarding automation", sub:"Google Sheets → Apps Script → instant client docs",
+    badge:"Week 3–4", badgeBg:"#EEEDFE", badgeTxt:"#534AB7", dotBg:"#7F77DD", dotTxt:"#fff", barColor:"#7F77DD",
+    sections:[
+      {label:"Google Docs templates", tasks:[
+        {id:"t31", text:"Save AI chat widget training prompt as a Google Doc with all [PLACEHOLDER] fields", tag:"Drive"},
+        {id:"t32", text:"Save website copy template as a Google Doc with all [PLACEHOLDER] fields", tag:"Drive"},
+        {id:"t33", text:"Record both Doc IDs — paste them into the Apps Script", tag:"Note"},
+      ]},
+      {label:"Google Sheet setup", tasks:[
+        {id:"t34", text:"Create Trendwise Clients Google Sheet with all 32 columns per the schema", tag:"Sheets"},
+        {id:"t35", text:"Add Status column with values: New / Ready / Docs Ready / Building / Review / Live / Active", tag:"Sheets"},
+      ]},
+      {label:"Apps Script", tasks:[
+        {id:"t36", text:"Build the onboardClient() Apps Script — reads client row, clones both Docs, runs find-and-replace", tag:"Script"},
+        {id:"t37", text:"Add auto-folder creation in Drive named [Business Name] — Trendwise", tag:"Script"},
+        {id:"t38", text:"Expose script as a web app endpoint so n8n can trigger it by row number", tag:"Script"},
+        {id:"t39", text:"Test script on a dummy row — confirm all placeholders replaced and folder created", tag:"Test"},
+      ]},
+    ]
+  },
+  {
+    id:"p4", title:"Phase 4 — Intake form and n8n", sub:"Client fills it in, Sheet populates, docs generate automatically",
+    badge:"Week 4–5", badgeBg:"#FAECE7", badgeTxt:"#993C1D", dotBg:"#D85A30", dotTxt:"#fff", barColor:"#D85A30",
+    sections:[
+      {label:"Client intake form", tasks:[
+        {id:"t41", text:"Build Google Form with all client info fields across 8 sections (identity, contact, hours, services, social proof, social media, branding, package confirmation)", tag:"Forms"},
+        {id:"t42", text:"Connect form responses to Google Sheet via native Google Forms → Sheets integration", tag:"Connect"},
+        {id:"t43", text:"Add Apps Script trigger: when Status changes to Ready, run onboardClient() automatically", tag:"Script"},
+        {id:"t44", text:"Test full flow — fill form, row appears in sheet, script runs, Drive folder created", tag:"Test"},
+      ]},
+      {label:"n8n orchestration", tasks:[
+        {id:"t45", text:"Workflow 1: New intake listener — creates GHL contact, notifies McKay when Status = New", tag:"n8n"},
+        {id:"t46", text:"Workflow 2: Docs trigger — calls Apps Script when Status = Ready, creates GHL internal task", tag:"n8n"},
+        {id:"t47", text:"Workflow 3: Go-live trigger — fires GHL welcome sequence and activates Stripe billing when Status = Live", tag:"n8n"},
+        {id:"t48", text:"Workflow 4: Post-onboarding scheduler — creates Day 7 check-in and Day 30 upsell review tasks", tag:"n8n"},
+      ]},
+    ]
+  },
+  {
+    id:"p5", title:"Phase 5 — Industry variants", sub:"Niche templates based on which vertical converts best",
+    badge:"Week 6–8", badgeBg:"#E1F5EE", badgeTxt:"#0F6E56", dotBg:"#1D9E75", dotTxt:"#fff", barColor:"#1D9E75",
+    sections:[
+      {label:"Build after first 3 clients", tasks:[
+        {id:"t51", text:"Identify which industry your first 3 clients came from", tag:"Review"},
+        {id:"t52", text:"Build a variant template sub-account for that niche — adjusted copy, CTA, pipeline stages", tag:"GHL"},
+        {id:"t53", text:"Update AI widget FAQ prompt for the niche — beauty vs contractor vs real estate differ", tag:"GHL"},
+        {id:"t54", text:"Build a second industry variant for your next best converting niche", tag:"GHL"},
+      ]},
+      {label:"Revenue milestone check", tasks:[
+        {id:"t55", text:"3 clients on Growth = GHL platform cost covered — pure recurring margin begins", tag:"Milestone"},
+        {id:"t56", text:"1 client on Pro = GHL cost fully covered on that client alone", tag:"Milestone"},
+        {id:"t57", text:"10 clients mixed = ~$3,000/month recurring after platform cost", tag:"Goal"},
+      ]},
+    ]
+  },
+  {
+    id:"p6", title:"Phase 6 — Hybrid Cloudflare hosting", sub:"Decouple websites from GHL for resilience and full code ownership",
+    badge:"Week 8–10+", badgeBg:"#EEEDFE", badgeTxt:"#534AB7", dotBg:"#534AB7", dotTxt:"#fff", barColor:"#534AB7",
+    callout:"Start this phase only after breakeven (3+ Growth clients). GHL remains the backend for all CRM, automations, and billing — you are only moving the website front-end to Cloudflare Pages.",
+    sections:[
+      {label:"Prerequisites", tasks:[
+        {id:"t61", text:"Confirm you are past GHL breakeven — at least 3 recurring clients covering the $497 platform cost", tag:"Check"},
+        {id:"t62", text:"Verify all existing client sites have been exported as clean HTML to Drive", tag:"Backup"},
+        {id:"t63", text:"Create a GitHub organization account for Trendwise — one repo per client site", tag:"GitHub"},
+      ]},
+      {label:"Cloudflare Pages setup", tasks:[
+        {id:"t64", text:"Create a Cloudflare account and connect to your GitHub organization", tag:"CF"},
+        {id:"t65", text:"Deploy one test site to Cloudflare Pages from a GitHub repo — confirm custom domain works", tag:"CF"},
+        {id:"t66", text:"Document the deploy process — git push = automatic redeploy in under 60 seconds", tag:"Doc"},
+      ]},
+      {label:"Claude-powered site generator", tasks:[
+        {id:"t67", text:"Build a Claude-generated single-file React/HTML site template — same sections as GHL template but as clean portable code", tag:"Code"},
+        {id:"t68", text:"Embed GHL form via script tag — submissions still feed the GHL CRM and trigger all existing automations", tag:"Code"},
+        {id:"t69", text:"Embed GHL AI chat widget via script tag — same widget, now on an external site", tag:"Code"},
+        {id:"t6a", text:"Test end-to-end: Cloudflare site → GHL form embed → lead captured in CRM → notification fires", tag:"Test"},
+      ]},
+      {label:"Apps Script update", tasks:[
+        {id:"t6b", text:"Add a third output to onboardClient() — generate a deployment-ready HTML file alongside the two Google Docs", tag:"Script"},
+        {id:"t6c", text:"Script pushes HTML file to the client's GitHub repo via GitHub API, triggering automatic Cloudflare deploy", tag:"Script"},
+        {id:"t6d", text:"Test full automated path: intake form → Apps Script → GitHub push → Cloudflare live site", tag:"Test"},
+      ]},
+      {label:"Migration policy", tasks:[
+        {id:"t6e", text:"Decide which new clients go straight to Cloudflare (Pro tier default) vs GHL builder (Starter/Growth)", tag:"Policy"},
+        {id:"t6f", text:"For existing clients: offer Cloudflare migration as a free upgrade to strengthen retention", tag:"Retention"},
+      ]},
+    ]
+  },
+];
+
+let done = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...done]));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function exportProgress() {
+  const data = JSON.stringify({ version: 1, done: [...done], exported: new Date().toISOString() });
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'trendwise-roadmap-progress.json';
+  a.click();
+  showToast('Progress exported');
+}
+
+function importProgress() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data.done && Array.isArray(data.done)) {
+          done = new Set(data.done);
+          save();
+          renderAll();
+          updateStats();
+          showToast('Progress imported');
+        }
+      } catch { showToast('Could not read file'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function resetAll() {
+  if (!confirm('Reset all progress? This cannot be undone.')) return;
+  done.clear();
+  save();
+  renderAll();
+  updateStats();
+  showToast('Progress reset');
+}
+
+function updateStats() {
+  let total = 0, d = 0;
+  PHASES.forEach(p => p.sections.forEach(s => s.tasks.forEach(t => { total++; if (done.has(t.id)) d++; })));
+  document.getElementById('s-done').textContent = d;
+  document.getElementById('s-total').textContent = total;
+  document.getElementById('s-pct').textContent = Math.round(d / total * 100) + '%';
+  document.getElementById('p-fill').style.width = Math.round(d / total * 100) + '%';
+  document.getElementById('p-label').textContent = d + ' of ' + total + ' tasks';
+  PHASES.forEach(p => {
+    let pt = 0, pd = 0;
+    p.sections.forEach(s => s.tasks.forEach(t => { pt++; if (done.has(t.id)) pd++; }));
+    const bar = document.getElementById('bar-' + p.id);
+    if (bar) bar.style.width = (pt > 0 ? Math.round(pd / pt * 100) : 0) + '%';
+  });
+}
+
+function toggle(id) {
+  if (done.has(id)) done.delete(id); else done.add(id);
+  save();
+  const el = document.getElementById('task-' + id);
+  if (!el) return;
+  el.classList.toggle('done', done.has(id));
+  const chk = el.querySelector('.task-check');
+  if (chk) {
+    chk.style.background = done.has(id) ? 'var(--accent)' : '';
+    chk.style.borderColor = done.has(id) ? 'var(--accent)' : '';
+    const ic = chk.querySelector('i');
+    if (ic) ic.style.opacity = done.has(id) ? '1' : '0';
+  }
+  updateStats();
+}
+
+function togglePhase(id) {
+  const body = document.getElementById('body-' + id);
+  const chev = document.getElementById('chev-' + id);
+  if (body) body.classList.toggle('open');
+  if (chev) chev.classList.toggle('open');
+}
+
+function renderAll() {
+  const container = document.getElementById('phases');
+  container.innerHTML = '';
+  PHASES.forEach((p, pi) => {
+    const phase = document.createElement('div');
+    phase.className = 'phase';
+    let inner = '';
+    if (p.callout) {
+      inner += `<div class="callout"><strong>Note:</strong> ${p.callout}</div>`;
+    }
+    p.sections.forEach(s => {
+      inner += `<div class="section-label">${s.label}</div><div class="tasks">`;
+      s.tasks.forEach(t => {
+        const isDone = done.has(t.id);
+        inner += `<div class="task${isDone ? ' done' : ''}" id="task-${t.id}" onclick="toggle('${t.id}')">
+          <div class="task-check" style="${isDone ? 'background:var(--accent);border-color:var(--accent)' : ''}">
+            <i class="ti ti-check" style="opacity:${isDone ? 1 : 0}"></i>
+          </div>
+          <span class="task-text">${t.text}</span>
+          ${t.tag ? `<span class="task-tag">${t.tag}</span>` : ''}
+        </div>`;
+      });
+      inner += '</div>';
+    });
+    const isFirst = pi === 0;
+    phase.innerHTML = `
+      <div class="phase-header" onclick="togglePhase('${p.id}')">
+        <div class="phase-dot" style="background:${p.dotBg};color:${p.dotTxt};min-width:34px">${pi}</div>
+        <div class="phase-meta">
+          <div class="phase-title">${p.title}</div>
+          <div class="phase-sub">${p.sub}</div>
+          <div class="phase-bar-wrap"><div class="phase-bar" id="bar-${p.id}" style="background:${p.barColor};width:0%"></div></div>
+        </div>
+        <span class="badge" style="background:${p.badgeBg};color:${p.badgeTxt}">${p.badge}</span>
+        <i class="ti ti-chevron-down chevron${isFirst ? ' open' : ''}" id="chev-${p.id}"></i>
+      </div>
+      <div class="phase-body${isFirst ? ' open' : ''}" id="body-${p.id}">
+        <div class="phase-inner">${inner}</div>
+      </div>`;
+    container.appendChild(phase);
+  });
+}
+
+renderAll();
+updateStats();
+</script>
+</body>
+</html>
