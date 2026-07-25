@@ -154,6 +154,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 **The Keep Layer**
 - Automated review requests after every job
 - Reactivation campaigns to win back quiet customers
+- Content automation — done-for-you social + email at a base cadence (included)
 - Custom reporting dashboard (React single-file) — leads, bookings, revenue in one place
 - 4 broadcast campaigns/month
 
@@ -169,6 +170,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 ### Monthly $697 Includes
 - Everything in Pro, plus:
 - 4 broadcast campaigns/month (vs 2 in Pro)
+- Content automation at base cadence (done-for-you social + email)
 - Same-day priority response (vs 24-hour in Pro)
 - White-glove onboarding + dedicated build
 - Custom CRM nav links included (not charged as an addon)
@@ -217,6 +219,9 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 - Reputation monitoring (Google review alerts)
 - Monthly performance snapshot to owner
 
+### Content Automation
+- Available as a recurring addon (see Part 4)
+
 ### Payments
 - No payment tools — clients use external tools
 
@@ -239,6 +244,9 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 - Priority 24-hour response (vs 48-hour standard)
 - Quarterly 30-minute strategy call
 
+### Content Automation
+- Available as a recurring addon (see Part 4)
+
 ### Payments
 - Text To Pay — enabled
 - Invoice builder — enabled
@@ -260,6 +268,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 | Appointment booking | — | ✓ | ✓ | ✓ |
 | Review request automation | — | ✓ | ✓ | ✓ |
 | Monthly broadcast campaigns | — | 1/month | 2/month | 4/month |
+| Content automation (social + email) | — | addon | addon | ✓ included (base) |
 | Reputation management | — | ✓ | ✓ | ✓ |
 | Monthly performance snapshot | — | ✓ | ✓ | ✓ |
 | n8n integrations | — | — | ✓ | ✓ |
@@ -294,6 +303,13 @@ Unlike automated workflow messages (which fire automatically based on a trigger 
 
 **Compliance note:** Broadcasts can only be sent to contacts who have given express written consent to receive marketing messages — not just anyone in the CRM. Clients must confirm consent provenance before the first broadcast is sent. Review-request and broadcast workflows are not activated against historical customer lists without confirmed consent documentation.
 
+### Content Automation (Done-for-You Social + Email)
+A recurring service where Trendwise uses GHL Content AI + Social Planner to generate on-brand social posts and email content and schedule them automatically. Content is trained on the client's brand voice and content pillars, defined during a one-time setup. Low marginal labor once templated, high perceived value.
+
+**Requires Social Planner**, so available on Growth, Pro, and All-in-One — not Starter. Included at a base cadence (e.g., 3 posts/week) in the All-in-One Growth System; sold as a recurring addon on Growth and Pro.
+
+**Best for:** businesses that know they should post but never do — salons, med spas, restaurants.
+
 ### Custom CRM Navigation Links
 Custom links added to the left sidebar navigation inside the client's GHL portal. Links can point to any URL — Google Business profile, booking page, Facebook page, training videos, Google Analytics, or any other tool the client uses regularly. Configured during onboarding. Increases portal engagement and reduces support requests.
 
@@ -313,7 +329,16 @@ Custom links added to the left sidebar navigation inside the client's GHL portal
 
 # PART 4 — ADDONS & UPSELLS
 
-## À La Carte Addons
+## Recurring Addons
+
+Available on any tier that supports the underlying feature. Billed monthly unless noted.
+
+| Addon | Price | Best For |
+|---|---|---|
+| Content automation (social + email) | $150–300/mo + $150–250 setup | Businesses that know they should post but never do — salons, med spas, restaurants (Growth, Pro; included base in All-in-One) |
+| Quarterly light-touch retainer | $100/quarter | Clients who decline monthly but want seasonal updates |
+
+## One-Time Addons
 
 Offered as one-time add-ons to any client on any tier unless noted.
 
@@ -322,7 +347,6 @@ Offered as one-time add-ons to any client on any tier unless noted.
 | Additional location sub-account | $300–500/location | Businesses with 2+ locations |
 | n8n integration (standalone) | $150–300 | Client has existing software (POS, CRM, QB) to connect to GHL |
 | Custom reporting dashboard | $200–400 | Data-driven owners asking for lead/conversion visibility |
-| Quarterly light-touch retainer | $100/quarter | Clients who decline monthly but want seasonal updates |
 | Lead capture automation upgrade | $150–300 | Starter clients who want instant lead alerts added |
 | Booking calendar integration | $100–200 | Starter clients who want scheduling added |
 | Review reputation widget | $75–150 | Any tier — high perceived value, fast build |
@@ -337,6 +361,7 @@ Listen for these phrases from existing clients:
 - `"Can you connect this to my [software]?"` → n8n integration, push to Pro or standalone
 - `"I want to see how many leads I'm getting"` → Reporting dashboard, push to Pro
 - `"We're opening a second location"` → Additional location sub-account
+- `"I know I should be posting but I never do"` → Content automation addon
 - `"Can I take deposits through the system?"` → Text To Pay + Invoice, push to Pro or All-in-One
 - `"Can I send invoices from here?"` → Invoice builder, push to Pro or All-in-One
 
@@ -528,6 +553,7 @@ All fields required to populate the website copy template and AI chat widget tra
 ### Section 8 — Package Confirmation
 - Selected package (Starter / Growth / Pro / All-in-One Growth System)
 - Any addons selected
+- Do they want done-for-you content posting? (Yes / No — flags content automation addon)
 - Do they want to send promotional broadcasts? (Yes / No — determines marketing consent checkbox requirement)
 - Do they have an EIN? (Yes / No — determines A2P registration path)
 - Signature / agreement to terms
@@ -549,6 +575,8 @@ All fields required to populate the website copy template and AI chat widget tra
 | 3 All-in-One | 3 | $2,091 | $1,594 |
 | Mixed (10 clients) | 10 | ~$3,567 | ~$3,070 |
 
+**Note:** Content automation addon adds ~$150–300/mo recurring per attached client at high margin (minimal labor once templated). A meaningful margin layer on top of the base tier when attached to Growth or Pro clients.
+
 ---
 
 # PART 10 — TECH STACK
@@ -557,6 +585,8 @@ All fields required to populate the website copy template and AI chat widget tra
 |---|---|
 | GoHighLevel (GHL) | Website, CRM, workflows, AI chat, SMS/email, SaaS billing |
 | GHL AI Studio | Website builder + AI chat widget configuration |
+| GHL Content AI | Social post + email content generation (content automation addon) |
+| GHL Social Planner | Scheduling automated social content (content automation addon) |
 | GHL SaaS Mode | White-labeled client portal + Stripe recurring billing |
 | Stripe | Payment processing (connected to GHL) |
 | n8n | External integrations (Pro + All-in-One + standalone addon) |
