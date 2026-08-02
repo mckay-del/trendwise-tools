@@ -467,7 +467,25 @@ One master template sub-account is cloned for every new client. Clone checklist:
 3. **2-Step Lead Nurture** — immediate welcome SMS/email + 24-hour follow-up if no response
 4. **Appointment Confirmation + Reminders** — confirmation on booking + 24hr + 2hr reminders (Growth / Pro / All-in-One only)
 5. **Review Request** — fires 2 hours after "Job Complete" tag; sends Google review link via SMS (Growth / Pro / All-in-One only)
-6. **AI Front Desk call flow** — inbound answering, FAQ handling, calendar booking (only when AI Front Desk is purchased / on All-in-One)
+
+## Template Architecture — One Master + Modular Snapshots
+
+**Do NOT build four separate tier templates.** The four tiers are the same core system with features toggled on/off, not four different builds. Maintaining four copies means fixing every bug four times. Instead:
+
+**One master template sub-account** contains the full base system (website, AI chat widget, all five core workflows, CRM pipeline). Cloned for every client regardless of tier.
+
+**Tier = a configuration pass, not a separate template.** During onboarding, run the SaaS feature permissions table (Part 5) as an activation checklist — turn workflows and features on/off to match the purchased tier. Starter leaves booking/review/campaigns dormant; Growth activates them; Pro adds n8n/reporting/payments; All-in-One turns on everything.
+
+**AI Front Desk = a modular snapshot, not part of the master.** Build the AI Front Desk agent and its surrounding workflows ONCE in the agency/personal account, then save it as a GHL snapshot. When a client buys AI Front Desk, push the snapshot into their existing sub-account — no rebuild. This keeps the base template clean (most clients won't have AI Front Desk) and the add-on modular.
+
+**What the snapshot carries vs. manual setup (VERIFY IN ACCOUNT):** Snapshots reliably carry workflows, calendars, custom fields, pipelines, and call-routing scaffolding. The Voice AI agent configuration itself (trained prompt, voice selection, conversational settings / AI Employee layer) may need a short manual setup or import per client depending on how GHL currently handles it. Before relying on this process, run one test: build AI Front Desk in the agency account → snapshot → push to a test sub-account → confirm exactly what carries over vs. what needs manual re-setup. Write the result into the AI Front Desk onboarding step.
+
+### AI Front Desk per-client onboarding (once snapshot is built)
+1. Enable GHL AI Employee unlimited (inbound) plan — $97/mo — on the client sub-account
+2. Push the AI Front Desk snapshot into the sub-account
+3. Manually attach/train the voice agent (if not carried by snapshot) on the client's services, hours, FAQs
+4. Connect the GHL number to the voice agent
+5. Test inbound answering + calendar booking end to end
 
 ---
 
@@ -532,13 +550,30 @@ All fields required to populate the website copy template and AI chat widget tra
 | Field | Placeholder | Notes |
 |---|---|---|
 | Package tier | n/a | Starter / Growth / Pro / All-in-One — determines active workflows |
-| AI Front Desk purchased | n/a | Yes / No — if yes, enable $97 unlimited plan + build call flow |
+| AI Front Desk purchased | n/a | Yes / No — if yes, enable $97 unlimited plan + build call flow + collect Section 9 intake |
 | Setup fee collected | n/a | Tracks payment received |
 | Monthly billing active | n/a | Confirms SaaS billing is live |
 | GHL sub-account ID | n/a | Internal reference after clone |
 | Client status | n/a | New / Ready / Docs Created / Live |
 | Onboarding date | n/a | Date client signed |
 | Go-live date | n/a | Date site went live |
+
+### AI Front Desk Agent Fields (only when AI Front Desk purchased)
+Populate the AI Front Desk voice agent from these. See the separate **AI Front Desk Master Template** doc for the full system prompt + knowledge base structure. Collected via Intake Section 9.
+| Field | Placeholder | Notes |
+|---|---|---|
+| Agent name | `[AGENT NAME]` | Receptionist's friendly first name |
+| Service area | `[SERVICE AREA]` | Towns/neighborhoods served |
+| Humor level | `[HUMOR LEVEL]` | none / light / playful — default light |
+| Pricing behavior | `[PRICING]` | Quote ranges, or "book a consult instead" |
+| Current offer | `[CURRENT OFFER]` | Factual, only if asked — or "None" |
+| Guarantees | `[GUARANTEES]` | Only real client-stated ones — or "None" |
+| Appointment types | `[APPOINTMENT TYPES]` | What can be booked; same-day/after-hours/emergency availability |
+| Emergency definition | `[EMERGENCY DEFINITION]` | Industry-specific; what agent does |
+| Handoff method | `[HANDOFF METHOD]` | Live transfer vs message-for-callback |
+| After-hours behavior | `[AFTER-HOURS BEHAVIOR]` | Message / on-call routing / other |
+| Language | `[LANGUAGE INSTRUCTION]` | English only / bilingual |
+| FAQs | `[FAQ 1..n]` | Client's real caller FAQs with answers |
 
 ---
 
@@ -587,11 +622,26 @@ All fields required to populate the website copy template and AI chat widget tra
 ### Section 8 — Package Confirmation
 - Selected package (Starter / Growth / Pro / All-in-One Growth System)
 - Any addons selected
-- Do they want AI Front Desk — AI answering their inbound calls? (Yes / No — flags $97 unlimited plan setup + call flow build)
+- Do they want AI Front Desk — AI answering their inbound calls? (Yes / No — flags $97 unlimited plan setup + call flow build; if Yes, complete Section 9)
 - Do they want done-for-you content posting? (Yes / No — flags content automation addon)
 - Do they want to send promotional broadcasts? (Yes / No — determines marketing consent checkbox requirement)
 - Do they have an EIN? (Yes / No — determines A2P registration path)
 - Signature / agreement to terms
+
+### Section 9 — AI Front Desk Setup (only if AI Front Desk purchased)
+These fields populate the AI Front Desk voice agent system prompt and knowledge base. See the AI Front Desk Master Template for how each is used.
+- Preferred agent name (the receptionist's first name — e.g. "Alexis", "Jordan")
+- Service area (towns/neighborhoods served — e.g. "Las Vegas, Henderson, Summerlin")
+- Humor level for the agent (None / strictly professional · Light and warm · Playful)
+- Should the agent quote prices, or only offer to book a consultation/estimate?
+- Current offer or special to mention if asked (or "None")
+- Guarantees or policies the agent may state (only real, client-stated ones — or "None")
+- Appointment types that can be booked (and whether same-day / after-hours / emergency slots exist)
+- Emergency definition — what counts as urgent for this business and what the agent should do
+- Handoff method — live transfer to a person, or take a message for callback?
+- After-hours behavior — take a message / route to on-call line / other
+- Language — English only, or bilingual (specify)
+- Top FAQs — the real questions callers ask most, with the answers (collect as many as possible)
 
 ---
 
