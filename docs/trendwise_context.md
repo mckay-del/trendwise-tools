@@ -47,7 +47,7 @@ The name does three jobs at once:
 
 ## Positioning Statement
 
-> For local service businesses that are losing customers to slow follow-up and a weak online presence, the **All-in-One Growth System** is a complete, done-for-you customer-growth machine — website, AI chat, instant call-back, and automated follow-up — built in 48 hours and managed for one monthly price. Unlike hiring an agency or stitching together five different tools, everything works together from day one, and there's nothing for you to build, learn, or maintain.
+> For local service businesses that are losing customers to slow follow-up and a weak online presence, the **All-in-One Growth System** is a complete, done-for-you customer-growth machine — website, AI chat, instant call-back, AI phone answering, and automated follow-up — built in 48 hours and managed for one monthly price. Unlike hiring an agency or stitching together five different tools, everything works together from day one, and there's nothing for you to build, learn, or maintain.
 
 ## Taglines
 
@@ -63,7 +63,7 @@ The name does three jobs at once:
 
 ## Elevator Pitch (30 seconds)
 
-> "Most local businesses lose customers not because they're bad — but because a call gets missed, a form sits for a day, or a lead never gets a follow-up. The All-in-One Growth System fixes that. It's a complete setup — a website, an AI chat that books appointments 24/7, automatic text-back on every missed call, and follow-up that runs itself — all built and live within 48 hours. You don't build anything or learn any software. It just runs, and you get one bill for the whole thing."
+> "Most local businesses lose customers not because they're bad — but because a call gets missed, a form sits for a day, or a lead never gets a follow-up. The All-in-One Growth System fixes that. It's a complete setup — a website, an AI chat that books appointments 24/7, an AI that answers your phone when you can't, automatic text-back on every missed call, and follow-up that runs itself — all built and live within 48 hours. You don't build anything or learn any software. It just runs, and you get one bill for the whole thing."
 
 ## Talking About It vs. the Tiers
 
@@ -108,7 +108,7 @@ Optional future variants (without diluting the name):
 - **All-in-One Growth System** — the standard flagship (default)
 - **Growth System Pro** — for multi-location or higher-volume operators
 
-Avoid inventing separate cute names for each component (no "LeadCatcher™ + TextBack Engine™" soup). One strong product name beats five weak feature names. The components are described in plain language; the *System* is the brand.
+Avoid inventing separate cute names for each component (no "LeadCatcher™ + TextBack Engine™" soup). One strong product name beats five weak feature names. The components are described in plain language; the *System* is the brand. (The one exception: "AI Front Desk" — see add-ons — earns a name because it is a distinct, high-value product sold on its own.)
 
 ## Where the Name Shows Up
 
@@ -125,6 +125,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 - **No results/revenue guarantees.** "Fewer missed calls," "captures every lead," and "grows your business" are fine as mechanism claims. Avoid "we'll double your bookings" or any specific outcome promise.
 - **"48 hours" is a good-faith target, not a contractual deadline.** Copy can say "live in 48 hours"; the order form and Terms condition that on the client providing assets and access.
 - **Every site ships with privacy + terms pages and SMS consent capture.** This is a *feature to sell* ("compliant from day one"), not a disclaimer to bury — real value most competitors skip.
+- **AI Front Desk is inbound-only by design.** This keeps Trendwise clear of TCPA outbound-calling exposure — the AI only answers calls people chose to make to the business. Do not market or enable outbound AI calling.
 - **"All-in-One" describes the marketing/CRM stack, not the tax/EA practice.** Keep the Growth System brand cleanly separate from K. McKay Larsen EA's accounting services.
 
 ---
@@ -142,6 +143,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 **The Capture Layer**
 - One-page conversion website (mobile-first, built on client brand)
 - AI chat widget that answers questions and books 24/7
+- AI Front Desk — AI answers inbound calls, answers questions, and books appointments (included)
 - Every-form lead capture with SMS-compliant consent built in
 - Required privacy policy + terms pages (A2P-ready from day one)
 
@@ -169,6 +171,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 
 ### Monthly $697 Includes
 - Everything in Pro, plus:
+- AI Front Desk — inbound AI phone answering (the headline flagship feature)
 - 4 broadcast campaigns/month (vs 2 in Pro)
 - Content automation at base cadence (done-for-you social + email)
 - Same-day priority response (vs 24-hour in Pro)
@@ -197,6 +200,9 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 - Missed-call text-back active
 - Up to 1 workflow update/month
 
+### AI Front Desk
+- Available as a recurring addon (see Part 4)
+
 ### Payments
 - No payment tools — clients use external tools (Square, Venmo, etc.)
 
@@ -219,8 +225,8 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 - Reputation monitoring (Google review alerts)
 - Monthly performance snapshot to owner
 
-### Content Automation
-- Available as a recurring addon (see Part 4)
+### AI Front Desk & Content Automation
+- Both available as recurring addons (see Part 4)
 
 ### Payments
 - No payment tools — clients use external tools
@@ -244,8 +250,8 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 - Priority 24-hour response (vs 48-hour standard)
 - Quarterly 30-minute strategy call
 
-### Content Automation
-- Available as a recurring addon (see Part 4)
+### AI Front Desk & Content Automation
+- Both available as recurring addons (see Part 4). Note: a Pro client who adds AI Front Desk ($297) plus content automation ($150–300) is priced above the All-in-One — steer them to the bundle.
 
 ### Payments
 - Text To Pay — enabled
@@ -269,6 +275,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 | Review request automation | — | ✓ | ✓ | ✓ |
 | Monthly broadcast campaigns | — | 1/month | 2/month | 4/month |
 | Content automation (social + email) | — | addon | addon | ✓ included (base) |
+| **AI Front Desk (inbound phone AI)** | **addon** | **addon** | **addon** | **✓ included** |
 | Reputation management | — | ✓ | ✓ | ✓ |
 | Monthly performance snapshot | — | ✓ | ✓ | ✓ |
 | n8n integrations | — | — | ✓ | ✓ |
@@ -303,6 +310,21 @@ Unlike automated workflow messages (which fire automatically based on a trigger 
 
 **Compliance note:** Broadcasts can only be sent to contacts who have given express written consent to receive marketing messages — not just anyone in the CRM. Clients must confirm consent provenance before the first broadcast is sent. Review-request and broadcast workflows are not activated against historical customer lists without confirmed consent documentation.
 
+### AI Front Desk (Inbound Voice AI)
+An AI voice agent that answers the client's inbound phone calls, responds to questions, and books appointments directly into their calendar — so no call goes unanswered when the owner is with another client, on a job, or closed for the day. Positioned as a replacement for the front office / receptionist function, not an outbound calling tool.
+
+**The problem it solves:** local service owners lose leads to missed calls — after hours, or while busy with another customer. Missed-call text-back catches these after the fact; AI Front Desk answers the call live.
+
+**Scope: inbound only.** By design, AI Front Desk never makes outbound calls. This is both a positioning choice (it's a front desk, not a robocaller) and a compliance choice (keeps Trendwise clear of TCPA outbound exposure).
+
+**Pricing:** $297/month + $250 one-time setup. Included in the All-in-One Growth System as the headline feature; available as a recurring addon on Starter, Growth, and Pro.
+
+**Operational rule (cost control):** When a client buys AI Front Desk, enable the GHL AI Employee unlimited (inbound) plan at $97/month on their sub-account as step one of setup. This caps Trendwise's cost at a known $97/client regardless of call volume and locks a floor margin of ~$200/client. Never meter minutes to the client.
+
+**Fair-use (internal, terms only — not in the pitch):** covers standard inbound volume for a local service business (~500 minutes/month). Exceptionally high-volume accounts move to a custom plan. This is a backstop in the terms, never mentioned in the sale — the offer is sold as "answers your inbound calls," no cap.
+
+**Setup includes:** building and training the call flow on the client's business, services, hours, and FAQs; connecting the GHL number; testing inbound answering and calendar booking end to end.
+
 ### Content Automation (Done-for-You Social + Email)
 A recurring service where Trendwise uses GHL Content AI + Social Planner to generate on-brand social posts and email content and schedule them automatically. Content is trained on the client's brand voice and content pillars, defined during a one-time setup. Low marginal labor once templated, high perceived value.
 
@@ -335,6 +357,7 @@ Available on any tier that supports the underlying feature. Billed monthly unles
 
 | Addon | Price | Best For |
 |---|---|---|
+| AI Front Desk (inbound voice AI) | $297/mo + $250 setup | Any tier; included in All-in-One. Businesses losing leads to missed calls — after hours or while busy. Inbound only. Enable GHL AI Employee unlimited ($97/mo) on the sub-account to cap cost. |
 | Content automation (social + email) | $150–300/mo + $150–250 setup | Businesses that know they should post but never do — salons, med spas, restaurants (Growth, Pro; included base in All-in-One) |
 | Quarterly light-touch retainer | $100/quarter | Clients who decline monthly but want seasonal updates |
 
@@ -356,6 +379,10 @@ Offered as one-time add-ons to any client on any tier unless noted.
 ## Upsell Conversation Triggers
 Listen for these phrases from existing clients:
 
+- `"I keep missing calls when I'm with a client"` → AI Front Desk
+- `"People call after we close and we lose them"` → AI Front Desk
+- `"I can't afford a receptionist"` → AI Front Desk (replaces a $200–750/mo function for $297)
+- `"I'm losing business to whoever picks up first"` → AI Front Desk
 - `"I wish I could message all my customers at once"` → Monthly campaign, push to Growth
 - `"I'm losing track of who called back"` → CRM upgrade or Pro
 - `"Can you connect this to my [software]?"` → n8n integration, push to Pro or standalone
@@ -364,6 +391,8 @@ Listen for these phrases from existing clients:
 - `"I know I should be posting but I never do"` → Content automation addon
 - `"Can I take deposits through the system?"` → Text To Pay + Invoice, push to Pro or All-in-One
 - `"Can I send invoices from here?"` → Invoice builder, push to Pro or All-in-One
+
+**Bundle-pull math:** A Pro client ($497) who adds AI Front Desk ($297) is at $794/mo — already above the All-in-One at $697. Any Pro client wanting AI Front Desk should be steered to the All-in-One, where it's included along with content automation, more campaigns, and white-glove support.
 
 ---
 
@@ -381,6 +410,7 @@ Listen for these phrases from existing clients:
 | Form Builder | ✓ | ✓ | ✓ | ✓ |
 | SMS & Email Templates | ✓ | ✓ | ✓ | ✓ |
 | Websites | ✓ | ✓ | ✓ | ✓ |
+| Voice AI (inbound) | addon | addon | addon | ✓ |
 | Facebook Messenger | ✗ | ✓ | ✓ | ✓ |
 | Reputation Management | ✗ | ✓ | ✓ | ✓ |
 | GMB Call Tracking | ✗ | ✓ | ✓ | ✓ |
@@ -407,6 +437,7 @@ Listen for these phrases from existing clients:
 **Non-negotiable rules:**
 - **Workflows and Triggers OFF for all tiers** — client edits silently break automations and lead capture. McKay-managed only.
 - **Launchpad OFF for all tiers** — it prompts clients to redo setup steps already completed, causing confusion and support load.
+- **Voice AI enabled only when AI Front Desk is purchased** — and paired with the $97/mo AI Employee unlimited plan on that sub-account. Inbound only.
 
 ---
 
@@ -423,18 +454,20 @@ One master template sub-account is cloned for every new client. Clone checklist:
 7. Connect GHL phone number
 8. Update AI chat widget with real business info
 9. Configure custom CRM nav links (Google Business, Booking Page, Google Reviews, Facebook, Monthly Report, Loom walkthrough)
-10. Test missed-call text-back
-11. Test lead capture form end-to-end
-12. Send test lead through pipeline
-13. Send client login credentials
-14. Deliver Loom walkthrough video
+10. If AI Front Desk purchased: enable $97 AI Employee unlimited plan, build + train inbound call flow, test answering and booking
+11. Test missed-call text-back
+12. Test lead capture form end-to-end
+13. Send test lead through pipeline
+14. Send client login credentials
+15. Deliver Loom walkthrough video
 
-## 5 Core Workflows in Template
+## Core Workflows in Template
 1. **New Lead Notification** — fires on any form submit or chat widget capture; texts + emails owner immediately
 2. **Missed-Call Text-Back** — fires within 30 seconds of unanswered inbound call; auto-SMS to caller
 3. **2-Step Lead Nurture** — immediate welcome SMS/email + 24-hour follow-up if no response
 4. **Appointment Confirmation + Reminders** — confirmation on booking + 24hr + 2hr reminders (Growth / Pro / All-in-One only)
 5. **Review Request** — fires 2 hours after "Job Complete" tag; sends Google review link via SMS (Growth / Pro / All-in-One only)
+6. **AI Front Desk call flow** — inbound answering, FAQ handling, calendar booking (only when AI Front Desk is purchased / on All-in-One)
 
 ---
 
@@ -463,7 +496,7 @@ All fields required to populate the website copy template and AI chat widget tra
 ### Hours & Booking
 | Field | Placeholder | Notes |
 |---|---|---|
-| Business hours | `[HOURS]` | Full weekly schedule |
+| Business hours | `[HOURS]` | Full weekly schedule — also trains AI Front Desk on when to say "we're closed" |
 | Booking URL | `[BOOKING URL]` | Calendly, GHL calendar link, or "Call us at [PHONE]" — also used for CRM nav link |
 | Preferred contact method | n/a | Call / Text / Email — configures notification workflow |
 
@@ -473,7 +506,7 @@ All fields required to populate the website copy template and AI chat widget tra
 | Primary service | `[SERVICE 1]` | Most popular or flagship service |
 | Secondary service | `[SERVICE 2]` | Second offering |
 | Third service | `[SERVICE 3]` | Third offering |
-| Full services list (paragraph) | `[SERVICES LIST]` | Used in AI widget training prompt |
+| Full services list (paragraph) | `[SERVICES LIST]` | Used in AI widget + AI Front Desk training |
 | General pricing or starting price | `[PRICING]` | e.g. "Starting at $45" |
 
 ### Social Proof
@@ -499,6 +532,7 @@ All fields required to populate the website copy template and AI chat widget tra
 | Field | Placeholder | Notes |
 |---|---|---|
 | Package tier | n/a | Starter / Growth / Pro / All-in-One — determines active workflows |
+| AI Front Desk purchased | n/a | Yes / No — if yes, enable $97 unlimited plan + build call flow |
 | Setup fee collected | n/a | Tracks payment received |
 | Monthly billing active | n/a | Confirms SaaS billing is live |
 | GHL sub-account ID | n/a | Internal reference after clone |
@@ -553,6 +587,7 @@ All fields required to populate the website copy template and AI chat widget tra
 ### Section 8 — Package Confirmation
 - Selected package (Starter / Growth / Pro / All-in-One Growth System)
 - Any addons selected
+- Do they want AI Front Desk — AI answering their inbound calls? (Yes / No — flags $97 unlimited plan setup + call flow build)
 - Do they want done-for-you content posting? (Yes / No — flags content automation addon)
 - Do they want to send promotional broadcasts? (Yes / No — determines marketing consent checkbox requirement)
 - Do they have an EIN? (Yes / No — determines A2P registration path)
@@ -575,7 +610,9 @@ All fields required to populate the website copy template and AI chat widget tra
 | 3 All-in-One | 3 | $2,091 | $1,594 |
 | Mixed (10 clients) | 10 | ~$3,567 | ~$3,070 |
 
-**Note:** Content automation addon adds ~$150–300/mo recurring per attached client at high margin (minimal labor once templated). A meaningful margin layer on top of the base tier when attached to Growth or Pro clients.
+**Add-on margin notes:**
+- **AI Front Desk:** client pays $297/mo; your cost is the $97/mo GHL AI Employee unlimited plan (inbound). Floor margin ~$200/mo per client, higher on low-volume clients using pay-per-use. Highest-margin recurring product in the lineup. $250 setup fee covers call-flow build so month one is never underwater.
+- **Content automation:** adds ~$150–300/mo recurring per attached client at high margin (minimal labor once templated).
 
 ---
 
@@ -585,6 +622,7 @@ All fields required to populate the website copy template and AI chat widget tra
 |---|---|
 | GoHighLevel (GHL) | Website, CRM, workflows, AI chat, SMS/email, SaaS billing |
 | GHL AI Studio | Website builder + AI chat widget configuration |
+| GHL Voice AI / AI Employee | Inbound AI phone answering (AI Front Desk addon) — enable $97/mo unlimited plan per client, inbound only |
 | GHL Content AI | Social post + email content generation (content automation addon) |
 | GHL Social Planner | Scheduling automated social content (content automation addon) |
 | GHL SaaS Mode | White-labeled client portal + Stripe recurring billing |
