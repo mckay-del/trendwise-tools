@@ -463,10 +463,31 @@ One master template sub-account is cloned for every new client. Clone checklist:
 
 ## Core Workflows in Template
 1. **New Lead Notification** — fires on any form submit or chat widget capture; texts + emails owner immediately
-2. **Missed-Call Text-Back** — fires within 30 seconds of unanswered inbound call; auto-SMS to caller
-3. **2-Step Lead Nurture** — immediate welcome SMS/email + 24-hour follow-up if no response
+2. **Missed-Call Text-Back** — fires within 30 seconds of unanswered inbound call; auto-SMS to caller (conversational only, no promo)
+3. **2-Step Lead Nurture** — immediate welcome email + 24-hour follow-up email if no response. **Email-only by design** (see below) — keeps automated messaging on the lower-compliance-risk channel (CAN-SPAM) rather than automated SMS (TCPA/A2P express-consent territory). In all tiers.
 4. **Appointment Confirmation + Reminders** — confirmation on booking + 24hr + 2hr reminders (Growth / Pro / All-in-One only)
 5. **Review Request** — fires 2 hours after "Job Complete" tag; sends Google review link via SMS (Growth / Pro / All-in-One only)
+
+### Workflow 3 — 2-Step Lead Nurture (email templates)
+
+**Trigger:** cleanest is Tag Added = `lead-nurture` (applied by Workflow 1), to keep entry points consistent and avoid double-firing.
+
+**Compliance rationale:** both steps are email, not SMS. A form-fill gives you the number but not necessarily express written consent for automated texts. Email (CAN-SPAM: needs working unsubscribe + honest headers) is the safe channel for timer-based automated follow-up. SMS stays reserved for reactive conversation (missed-call text-back) and consented broadcasts.
+
+**Step 1 — Welcome Email (identical for ALL tiers):**
+- Subject: `Thanks for reaching out to [BUSINESS NAME]!`
+- Body: warm welcome, "someone will be in touch shortly," urgent contact = call/text `[PHONE NUMBER]`, signed by `[BUSINESS NAME]`, `[WEBSITE URL]`.
+
+**Step 2 — Wait 24 hours**, then branch on whether the contact has replied. If replied → exit. If no reply → Step 3.
+
+**Step 3 — Follow-Up Email — TWO VERSIONS (tier-dependent):**
+- **Version A (Growth / Pro / All-in-One — has booking):** offers `[BOOKING URL]` to schedule, or reply.
+- **Version B (Starter — NO booking calendar):** offers call/text `[PHONE NUMBER]` or reply — no booking link, since Starter has no calendar.
+
+**Build handling:** build Version A into the master template; during the **Starter config pass, swap Step 3 to Version B** (or keep both as saved GHL email templates — "Nurture Follow-Up — Booking" / "Nurture Follow-Up — No Booking" — and point Step 3 at the right one). Note this on the tier-config checklist.
+
+### Tier-Dependency Rule (important)
+**Any workflow that lives in all tiers but references a Growth+ feature needs a Starter-safe fallback.** Workflow 3 is the first case (booking link → call/text fallback for Starter). Watch for this anywhere booking, review automation, or payments get referenced inside a base-tier automation — Starter clients don't have those features, so the copy/links must degrade gracefully.
 
 ## Template Architecture — One Master + Modular Snapshots
 
