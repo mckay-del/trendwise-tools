@@ -1,0 +1,87 @@
+# GHL-Native Onboarding Flow — Contract → Signature → Invoice → Onboard
+
+> **Internal tooling.** This is the "handshake to paid-and-signed" flow, built entirely inside GHL (no DocuSign, no n8n). One-time template setup, then reused per client. Works handed to a client on an iPad or sent as a link.
+>
+> **Requires:** Documents & Contracts + Invoicing (Pro/All-in-One feature set — but this runs in your AGENCY/template context for onboarding, so you have it). Payments require a connected payment processor (any GHL-compatible one).
+
+---
+
+## PHASE 1 — Build the contract template (one-time)
+
+- [ ] Documents & Contracts → Templates → Create Template → name "Trendwise CSA + Order Form"
+- [ ] Recreate the **Order Form** content as fillable fields (client info, package checkboxes, add-ons, fee summary, billing selection)
+- [ ] Recreate the **CSA** body + **SMS/A2P Addendum (Exhibit A)** as the agreement text
+- [ ] Use GHL's field types: text fields (prefill), checkboxes (package/add-ons), signature field, date field
+- [ ] Mark which fields are **agency-fillable** (you complete before sending) vs **client-fillable** (they complete)
+- [ ] Add the **electronic-consent line** at the signature point:
+      "By signing below, I agree to sign electronically and to be bound by this Agreement and its SMS/A2P Addendum."
+- [ ] Add an **agency signature block** (you countersign)
+
+---
+
+## PHASE 2 — Build the invoice/product setup (one-time)
+
+- [ ] Payments → connect your payment processor (any GHL-compatible processor)
+- [ ] Payments → Products → create a product per tier:
+  - Starter — $197/mo recurring + one-time setup
+  - Growth — $297/mo recurring + setup
+  - Pro — $497/mo recurring + setup
+  - All-in-One — $697/mo recurring + setup
+- [ ] Create add-on products: AI Front Desk ($297/mo + $250 setup), Content Automation, etc.
+- [ ] Set recurring products to the right billing interval; annual option = 11-months-for-12 as a separate annual price
+- [ ] Build an **invoice template** that you can populate per client (setup fee + first month, or annual)
+
+---
+
+## PHASE 3 — Wire the automation chain (one-time)
+
+The magic: each step triggers the next, natively.
+
+- [ ] **Workflow A — "Contract Signed → Invoice"**
+  - Trigger: Document/Contract Signed (the CSA template)
+  - Action: create + send invoice for the setup fee (and set up the recurring subscription per the tier they signed for)
+  - Action: move opportunity to a "Signed — Awaiting Payment" pipeline stage
+- [ ] **Workflow B — "Invoice Paid → Onboard"**
+  - Trigger: Invoice Paid
+  - Action: move opportunity to "Paid — Build" stage
+  - Action: create internal task for McKay ("Begin build for [client]")
+  - Action: (optional) fire the client welcome sequence
+  - Action: set Status = Ready on your onboarding tracker (or via connected automation)
+
+---
+
+## PHASE 4 — Per-client run (the repeatable flow)
+
+1. Lead says yes on the sales call
+2. Open the "Trendwise CSA + Order Form" template → pre-fill their package, add-ons, and fees
+3. Hand them the iPad (in person) OR send the contract link
+4. Client reviews, checks the electronic-consent line, signs + dates
+5. **Workflow A fires:** invoice auto-generates for the setup fee
+6. Client pays on the same iPad (or via the link)
+7. **Workflow B fires:** pipeline moves to "Paid — Build," task created, build begins
+8. You clone the master template, run the doc-generator script, and onboard
+
+---
+
+## PHASE 5 — Test the whole chain
+
+- [ ] Create a test opportunity
+- [ ] Send yourself the contract template, sign it as a test
+- [ ] Confirm Workflow A fires → invoice generated correctly
+- [ ] Pay the test invoice (use a test/real small amount)
+- [ ] Confirm Workflow B fires → pipeline moves, task created
+- [ ] Confirm the recurring subscription is set up correctly for next month
+- [ ] Confirm the signed document is stored on the contact record
+
+---
+
+## Notes & Guardrails
+
+- **Legally binding:** GHL e-signature satisfies ESIGN + Nevada UETA (intent, consent, association, retention). The electronic-consent line in Phase 1 strengthens the "intent + consent" element. Get the CSA content attorney-reviewed once; the signing tool is sound.
+- **DocuSign fallback:** the standalone DocuSign versions of the CSA + order form remain the premium/portable option for high-value clients or if this ever becomes a resold feature. Not needed for internal onboarding.
+- **Recurring billing:** make sure the signed tier maps to the correct recurring product so the subscription bills automatically each month — this is the piece that turns one signature into ongoing revenue.
+- **Consent capture:** the SMS/A2P Addendum is part of the signed contract, so signing also captures the client's acknowledgment of their SMS consent obligations — one signature covers services + messaging compliance.
+
+---
+
+*Trendwise Business Services · K. McKay Larsen EA, Ltd. · Las Vegas, NV · Internal build guide*
