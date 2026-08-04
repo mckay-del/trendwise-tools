@@ -372,7 +372,7 @@ Offered as one-time add-ons to any client on any tier unless noted.
 | Custom reporting dashboard | $200–400 | Data-driven owners asking for lead/conversion visibility |
 | Lead capture automation upgrade | $150–300 | Starter clients who want instant lead alerts added |
 | Booking calendar integration | $100–200 | Starter clients who want scheduling added |
-| Review reputation widget | $75–150 | Any tier — high perceived value, fast build |
+| Review automation (Starter add-on) | $75–150 | Starter clients who want reviews. Includes the Review Request workflow AND the Job/Service pipeline that triggers it. Included by default on Growth/Pro/All-in-One. |
 | Multi-step nurture upgrade | $150–250 | Starter clients who want more than 2-step follow-up |
 | Custom CRM nav links | $75 one-time | Starter / Growth / Pro — included free in All-in-One |
 
@@ -466,7 +466,26 @@ One master template sub-account is cloned for every new client. Clone checklist:
 2. **Missed-Call Text-Back** — fires within 30 seconds of unanswered inbound call; auto-SMS to caller (conversational only, no promo)
 3. **2-Step Lead Nurture** — immediate welcome email + 24-hour follow-up email if no response. **Email-only by design** (see below) — keeps automated messaging on the lower-compliance-risk channel (CAN-SPAM) rather than automated SMS (TCPA/A2P express-consent territory). In all tiers.
 4. **Appointment Confirmation + Reminders** — confirmation on booking + 24hr + 2hr reminders (Growth / Pro / All-in-One only)
-5. **Review Request** — fires 2 hours after "Job Complete" tag; sends Google review link via SMS (Growth / Pro / All-in-One only)
+5. **Review Request** — fires when an opportunity moves to the "Job Completed" stage; waits 2 hours; sends Google review link via SMS (Growth / Pro / All-in-One only). See detailed spec below.
+
+### Workflow 5 — Review Request (pipeline-triggered)
+
+**Trigger:** Opportunity Stage Changed → Pipeline = "Job/Service 1", Stage = "Job Completed". Triggering off a pipeline stage (not a manual tag) is the documented standard — it ties the review request to a real CRM event instead of relying on someone remembering to apply a tag.
+
+**Flow:**
+- Wait 2 hours (job feels done, experience still fresh)
+- Send SMS: thank the customer + direct Google review link `[GOOGLE URL]`
+
+**Standard SMS copy:**
+> Hi {{contact.first_name}}, thank you for choosing [BUSINESS NAME]! We'd love to hear how we did. If you have a moment, a quick review means the world to us: [GOOGLE URL]
+
+**Client-side dependency:** whoever runs the CRM must move opportunities into "Job Completed" for this to fire. Include this in the client's Loom walkthrough — "drag a finished job to Job Completed and the review request goes out automatically." It's a selling point: one drag, reviews grow on autopilot.
+
+**CRITICAL setup gotcha — use the DIRECT review link:** `[GOOGLE URL]` for this workflow must be the *direct-to-review* link that opens straight to the "write a review" box — NOT the general Google Business profile page. Use the client's Google Business "Ask for reviews" short link, or the `...review?placeid=` format. Dropping the customer straight into the review box dramatically increases completion vs. landing them on the profile. Note: this may differ from the `[GOOGLE URL]` used elsewhere (e.g. the website footer, which can point at the profile). Consider a separate `[GOOGLE REVIEW LINK]` value if the two need to differ per client.
+
+**Compliance:** fires for real customers with a transactional relationship (defensible), but keep it a single clean ask (a second nudge edges toward promotional). Never run against an imported historical list without confirmed consent.
+
+**Tier note:** the Review feature is a unit — the Review Request workflow PLUS the "Job/Service 1" pipeline that triggers it. Included on Growth / Pro / All-in-One. For Starter it's the review add-on ($75–150), and the Job/Service pipeline comes with it. Baseline every tier gets one pipeline (Sales); the Job/Service pipeline is added wherever reviews are active.
 
 ### Workflow 3 — 2-Step Lead Nurture (email templates)
 
@@ -488,6 +507,34 @@ One master template sub-account is cloned for every new client. Clone checklist:
 
 ### Tier-Dependency Rule (important)
 **Any workflow that lives in all tiers but references a Growth+ feature needs a Starter-safe fallback.** Workflow 3 is the first case (booking link → call/text fallback for Starter). Watch for this anywhere booking, review automation, or payments get referenced inside a base-tier automation — Starter clients don't have those features, so the copy/links must degrade gracefully.
+
+## Booking-Form Consent Model (standard on every client's booking calendar)
+
+Two separate consent captures on the appointment booking form, doing two different jobs. Log both separately per contact.
+
+### Toggle 1 — Non-marketing / transactional consent (REQUIRED to book)
+Covers appointment confirmations and reminders (Workflow 4). Required is acceptable *because* it's tightly scoped to messaging intrinsic to the appointment the person is booking — not marketing. Keep the wording narrowly transactional.
+
+**Standard required-box language:**
+> By checking this box, I consent to receive non-marketing text messages from [BUSINESS NAME] about [SMS_USE_CASE]. Message frequency varies, message & data rates may apply. Text HELP for assistance, reply STOP to opt out.
+
+- **`[SMS_USE_CASE]`** must be filled per client and **must match the use case registered in that client's A2P 10DLC campaign.** Carriers cross-check the on-form consent language against the registered campaign purpose; a mismatch can hurt deliverability or cause registration rejection.
+- **Default `[SMS_USE_CASE]` for appointment-based clients:** "appointment confirmations, reminders, and scheduling"
+- This language includes all required elements: non-marketing scope, named sender, frequency disclosure, rate disclosure, HELP keyword, STOP opt-out. It's strong enough to *help* A2P campaign approval — reuse it as a standard asset.
+
+### Toggle 2 — Marketing consent (OPTIONAL, default OFF)
+Covers broadcasts and promos. Must be affirmative and never pre-checked; never required to book (can't gate the core action behind marketing consent). GHL's default "receive content from this company" wording is acceptable here since this box is meant to be broad/marketing — but keep it OPTIONAL and OFF by default.
+
+### Consent logging → downstream rules
+Logging both separately lets you segment cleanly per contact:
+- **Booked + transactional consent** → gets appointment texts (all bookers do)
+- **Also checked marketing** → eligible for broadcasts/promos
+- **Booked, marketing unchecked** → appointment texts only, NEVER a broadcast
+
+**Broadcast rule:** the broadcast/campaign segment must filter on the **marketing-consent field specifically** — never send to the whole booked list. This is the guardrail that keeps broadcasts compliant.
+
+### New placeholder
+`[SMS_USE_CASE]` — per client, matches their A2P campaign purpose; defaults to "appointment confirmations, reminders, and scheduling" for appointment-based clients. Add to the Core tab when wiring A2P.
 
 ## Template Architecture — One Master + Modular Snapshots
 
