@@ -785,6 +785,24 @@ These fields populate the AI Front Desk voice agent system prompt and knowledge 
 5. Day 7 → check-in SMS to client from McKay's GHL number
 6. Day 30 → upsell review: flag Starter clients for Growth upgrade conversation
 
+## Contract → Signature → Invoice → Onboard (GHL-native, internal)
+
+The "handshake to paid-and-signed" flow, built entirely inside GHL — no DocuSign or n8n needed for internal onboarding. One-time template setup, reused per client. Works on an iPad in person or as a sent link.
+
+**Legal note:** GHL e-signature is binding under ESIGN + Nevada UETA (intent, consent, association, retention). Include an explicit electronic-consent line at the signature point ("I agree to sign electronically and to be bound…"). Get the CSA content attorney-reviewed once; the signing tool itself is sound. The standalone DocuSign versions of the CSA + order form remain the premium/portable fallback for high-value clients or future resale.
+
+**One-time build:**
+- Build "Trendwise CSA + Order Form" as a GHL Documents & Contracts template — order form fields (client info, package checkboxes, add-ons, fees, billing selection) + CSA body + SMS/A2P Addendum (Exhibit A) + electronic-consent line + signature/date fields. Mark agency-fillable vs client-fillable fields.
+- Set up Payments: connect a payment processor (any GHL-compatible one), create a recurring product per tier ($197/$297/$497/$697) + setup fees + add-on products. Annual = 11-for-12 as a separate annual price.
+
+**Automation chain:**
+- **Workflow A — Contract Signed → Invoice:** trigger on Document Signed → auto-create + send invoice for setup fee + set up recurring subscription for the signed tier → move opportunity to "Signed — Awaiting Payment."
+- **Workflow B — Invoice Paid → Onboard:** trigger on Invoice Paid → move opportunity to "Paid — Build" → create internal build task → optionally fire client welcome sequence → set onboarding Status = Ready.
+
+**Per-client flow:** lead says yes → open template, pre-fill package + fees → hand iPad or send link → client signs (+ electronic consent) → Workflow A auto-invoices → client pays → Workflow B moves to build → clone master, run doc-generator script, onboard.
+
+**Key payoffs:** one signature covers services + SMS consent (the addendum is part of the signed contract); the signed tier maps to the correct recurring product so one signature becomes ongoing monthly revenue automatically. See the standalone "GHL Contract → Invoice Flow" build guide for the full phased checklist.
+
 ---
 
 *Last updated: August 2026 | Trendwise Business Services | Las Vegas, NV*
