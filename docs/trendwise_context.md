@@ -133,7 +133,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 # PART 2 — SERVICE PACKAGES
 
 ## Flagship — All-in-One Growth System
-**Pricing:** $1,500 one-time setup + $697/month recurring
+**Pricing:** $2,000 one-time setup + $997/month recurring
 **Positioning:** "The whole machine, done for you" — the default offer, sold above the tiers
 
 > **Positioning note:** Don't publish the deliverables as a checklist the buyer has to evaluate. Publish it as *"Here's everything that's running for you."* The length of the list is the proof of value, not a menu to negotiate.
@@ -169,7 +169,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 - White-glove dedicated onboarding
 - Custom CRM dashboard navigation links (included)
 
-### Monthly $697 Includes
+### Monthly $997 Includes
 - Everything in Pro, plus:
 - AI Front Desk — inbound AI phone answering (the headline flagship feature)
 - 4 broadcast campaigns/month (vs 2 in Pro)
@@ -181,7 +181,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 ---
 
 ## Package 1 — Starter: "Get Found"
-**Pricing:** $500–750 one-time setup + $197/month recurring
+**Pricing:** $750–1,000 one-time setup + $247/month recurring
 
 ### One-Time Setup Deliverables
 - One-page professional website (mobile-first, GHL AI Studio)
@@ -193,7 +193,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 - Google Maps + contact info setup
 - 48-hour delivery
 
-### Monthly $197 Includes
+### Monthly $247 Includes
 - GHL sub-account platform fee (SaaS billing)
 - Website hosting
 - AI chat widget active
@@ -209,7 +209,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 ---
 
 ## Package 2 — Growth: "Get Leads"
-**Pricing:** $750 one-time setup + $297/month recurring
+**Pricing:** $1,000 one-time setup + $397/month recurring
 
 ### Everything in Starter, Plus:
 
@@ -219,7 +219,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
   - Auto-confirmation SMS + email, 24-hour reminder SMS, 2-hour reminder SMS
 - Google review request automation (auto-SMS 2 hours after "Job Complete" tag; direct Google profile link)
 
-#### Monthly $297 Includes
+#### Monthly $397 Includes
 - Everything in Starter
 - 1 broadcast email or SMS campaign/month
 - Reputation monitoring (Google review alerts)
@@ -234,7 +234,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 ---
 
 ## Package 3 — Pro: "Get Customers"
-**Pricing:** $1,000 one-time setup + $497/month recurring
+**Pricing:** $1,500 one-time setup + $697/month recurring
 
 ### Everything in Growth, Plus:
 
@@ -243,7 +243,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 - Multi-step lead nurture (3–5 touchpoints over 2 weeks, segmented by service/source)
 - Custom reporting dashboard (React single-file, pulls GHL data)
 
-#### Monthly $497 Includes
+#### Monthly $697 Includes
 - Everything in Growth
 - 2 broadcast campaigns/month
 - n8n workflow maintenance
@@ -251,7 +251,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 - Quarterly 30-minute strategy call
 
 ### AI Front Desk & Content Automation
-- Both available as recurring addons (see Part 4). Note: a Pro client who adds AI Front Desk ($297) plus content automation ($150–300) is priced above the All-in-One — steer them to the bundle.
+- Both available as recurring addons (see Part 4). Note: a Pro client who adds AI Front Desk ($397) plus content automation ($197–300) is priced above the All-in-One — steer them to the bundle.
 
 ### Payments
 - Text To Pay — enabled
@@ -286,8 +286,8 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 | Quarterly strategy call | — | — | ✓ | ✓ |
 | White-glove onboarding | — | — | — | ✓ |
 | Response time | 48-hour | 48-hour | 24-hour | Same-day |
-| **Monthly retainer** | **$197** | **$297** | **$497** | **$697** |
-| **One-time setup** | **$500–750** | **$750** | **$1,000** | **$1,500** |
+| **Monthly retainer** | **$247** | **$397** | **$697** | **$997** |
+| **One-time setup** | **$750–1,000** | **$1,000** | **$1,500** | **$2,000** |
 
 ---
 
@@ -317,7 +317,7 @@ An AI voice agent that answers the client's inbound phone calls, responds to que
 
 **Scope: inbound only.** By design, AI Front Desk never makes outbound calls. This is both a positioning choice (it's a front desk, not a robocaller) and a compliance choice (keeps Trendwise clear of TCPA outbound exposure).
 
-**Pricing:** $297/month + $250 one-time setup. Included in the All-in-One Growth System as the headline feature; available as a recurring addon on Starter, Growth, and Pro.
+**Pricing:** $397/month + $250 one-time setup. Included in the All-in-One Growth System as the headline feature; available as a recurring addon on Starter, Growth, and Pro.
 
 **Operational rule (cost control):** When a client buys AI Front Desk, enable the GHL AI Employee unlimited (inbound) plan at $97/month on their sub-account as step one of setup. This caps Trendwise's cost at a known $97/client regardless of call volume and locks a floor margin of ~$200/client. Never meter minutes to the client.
 
@@ -357,7 +357,7 @@ Available on any tier that supports the underlying feature. Billed monthly unles
 
 | Addon | Price | Best For |
 |---|---|---|
-| AI Front Desk (inbound voice AI) | $297/mo + $250 setup | Any tier; included in All-in-One. Businesses losing leads to missed calls — after hours or while busy. Inbound only. Enable GHL AI Employee unlimited ($97/mo) on the sub-account to cap cost. |
+| AI Front Desk (inbound voice AI) | $397/mo + $250 setup | Any tier; included in All-in-One. Businesses losing leads to missed calls — after hours or while busy. Inbound only. Enable GHL AI Employee unlimited ($97/mo) on the sub-account to cap cost. |
 | Content automation (social + email) | $150–300/mo + $150–250 setup | Businesses that know they should post but never do — salons, med spas, restaurants (Growth, Pro; included base in All-in-One) |
 | Quarterly light-touch retainer | $100/quarter | Clients who decline monthly but want seasonal updates |
 
@@ -381,7 +381,7 @@ Listen for these phrases from existing clients:
 
 - `"I keep missing calls when I'm with a client"` → AI Front Desk
 - `"People call after we close and we lose them"` → AI Front Desk
-- `"I can't afford a receptionist"` → AI Front Desk (replaces a $200–750/mo function for $297)
+- `"I can't afford a receptionist"` → AI Front Desk (replaces a $200–750/mo function for $397)
 - `"I'm losing business to whoever picks up first"` → AI Front Desk
 - `"I wish I could message all my customers at once"` → Monthly campaign, push to Growth
 - `"I'm losing track of who called back"` → CRM upgrade or Pro
@@ -392,7 +392,7 @@ Listen for these phrases from existing clients:
 - `"Can I take deposits through the system?"` → Text To Pay + Invoice, push to Pro or All-in-One
 - `"Can I send invoices from here?"` → Invoice builder, push to Pro or All-in-One
 
-**Bundle-pull math:** A Pro client ($497) who adds AI Front Desk ($297) is at $794/mo — already above the All-in-One at $697. Any Pro client wanting AI Front Desk should be steered to the All-in-One, where it's included along with content automation, more campaigns, and white-glove support.
+**Bundle-pull math:** A Pro client ($697) who adds AI Front Desk ($397) is at $1,094/mo — already above the All-in-One at $997. Any Pro client wanting AI Front Desk should be steered to the All-in-One, where it's included along with content automation, more campaigns, and white-glove support.
 
 ---
 
@@ -716,20 +716,36 @@ These fields populate the AI Front Desk voice agent system prompt and knowledge 
 # PART 9 — REVENUE MODEL
 
 - **GHL agency plan fixed cost:** $497/month
-- **Breakeven:** ~3 clients on Growth tier
+- **Breakeven:** ~2 clients on Growth tier (Growth now $397 vs $497 GHL cost)
 - **$200/day target:** 2–3 one-time builds/week early stage; 10 recurring clients long-term
+
+## Billing Model (how a client is charged)
+
+**At signing, the invoice collects two separate things:**
+1. **Setup fee (one-time)** — compensates for the build (the 48-hour done-for-you work). Tiered *floor that can rise*: each tier has a starting setup fee that is editable upward per client when a bigger build justifies it. Set the default to the tier floor; bump per deal.
+2. **First month of subscription** — the recurring plan starts immediately and bills its first cycle at signing.
+
+Then the recurring plan bills again every 30 days. **Setup covers the build; monthly covers running/hosting the system — two distinct charges, both collected day one.** The first month is NOT folded into setup (folding it in would discount build labor by a month's subscription and erode tier margin).
+
+**Setup fee floors (editable upward):** Starter $750–1,000 · Growth $1,000 · Pro $1,500 · All-in-One $2,000.
+
+**Annual option:** the 11-for-12 discount applies to the **recurring side only**, not setup. Annual clients pay the full setup fee + the discounted annual prepayment. Setup is a one-time build charge regardless of monthly vs. annual billing.
+
+**Objection handling:** if the day-one total (setup + first month) causes sticker shock, split the setup ("half now, half on delivery") rather than folding the month into setup or discounting the structure.
+
+**GHL product structure:** one recurring product per tier. GHL's recurring product has a **built-in setup-fee field with a custom (editable) amount** on the same product — so a single product handles both the monthly charge and the editable setup fee. No separate setup products needed. Set the setup fee to the tier floor by default; edit it upward per client when the build justifies it. Add-ons are their own products (AI Front Desk carries its own recurring price + setup-fee field, etc.).
 
 | Scenario | Clients | Monthly Recurring | After GHL Cost |
 |---|---|---|---|
-| 3 Starter | 3 | $591 | $94 |
-| 5 Growth | 5 | $1,485 | $988 |
-| 3 Pro | 3 | $1,491 | $994 |
-| 1 All-in-One | 1 | $697 | $200 |
-| 3 All-in-One | 3 | $2,091 | $1,594 |
-| Mixed (10 clients) | 10 | ~$3,567 | ~$3,070 |
+| 3 Starter | 3 | $741 | $244 |
+| 5 Growth | 5 | $1,985 | $1,488 |
+| 3 Pro | 3 | $2,091 | $1,594 |
+| 1 All-in-One | 1 | $997 | $500 |
+| 3 All-in-One | 3 | $2,991 | $2,494 |
+| Mixed (3 Starter + 4 Growth + 2 Pro + 1 All-in-One) | 10 | $4,720 | $4,223 |
 
 **Add-on margin notes:**
-- **AI Front Desk:** client pays $297/mo; your cost is the $97/mo GHL AI Employee unlimited plan (inbound). Floor margin ~$200/mo per client, higher on low-volume clients using pay-per-use. Highest-margin recurring product in the lineup. $250 setup fee covers call-flow build so month one is never underwater.
+- **AI Front Desk:** client pays $397/mo; your cost is the $97/mo GHL AI Employee unlimited plan (inbound). Floor margin ~$300/mo per client, higher on low-volume clients using pay-per-use. Highest-margin recurring product in the lineup. $250 setup fee covers call-flow build so month one is never underwater.
 - **Content automation:** adds ~$150–300/mo recurring per attached client at high margin (minimal labor once templated).
 
 ---
@@ -793,7 +809,7 @@ The "handshake to paid-and-signed" flow, built entirely inside GHL — no DocuSi
 
 **One-time build:**
 - Build "Trendwise CSA + Order Form" as a GHL Documents & Contracts template — order form fields (client info, package checkboxes, add-ons, fees, billing selection) + CSA body + SMS/A2P Addendum (Exhibit A) + electronic-consent line + signature/date fields. Mark agency-fillable vs client-fillable fields.
-- Set up Payments: connect a payment processor (any GHL-compatible one), create a recurring product per tier ($197/$297/$497/$697) + setup fees + add-on products. Annual = 11-for-12 as a separate annual price.
+- Set up Payments: connect a payment processor (any GHL-compatible one), create a recurring product per tier ($247/$397/$697/$997) + setup fees + add-on products. Annual = 11-for-12 as a separate annual price.
 
 **Automation chain:**
 - **Workflow A — Contract Signed → Invoice:** trigger on Document Signed → auto-create + send invoice for setup fee + set up recurring subscription for the signed tier → move opportunity to "Signed — Awaiting Payment."
