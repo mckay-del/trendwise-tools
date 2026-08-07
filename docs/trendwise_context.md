@@ -43,7 +43,7 @@ The name does three jobs at once:
 | **Role in the lineup** | Entry + expansion path | Flagship / anchor offer |
 | **Positioning** | "Build your system piece by piece" | "The whole growth system, done" |
 
-**Key move:** Lead every sales conversation with the All-in-One Growth System. The tiers become the fallback ("If the full System is more than you want to start with, we can begin with just the Starter piece and add on"). This is classic anchor pricing — the flagship makes the tiers feel affordable, and the tiers catch the buyers the flagship loses.
+**Key move — anchor high, recommend Growth.** Let the All-in-One Growth System *anchor* the conversation as the ceiling: its price makes the tiers feel affordable, and it captures the rare buyer who wants us to run everything. But the flagship is **not** expected to be the volume seller — it only fits an owner who genuinely needs every layer (content, AI phone desk, white-glove). For the core of who we sell to — local service businesses and real estate pros — **Growth is the best-fit default and our most popular package**: website, missed-call text-back, AI chat, appointment booking, and review automation cover what they actually need at $397/mo. So name the full range (flagship at the top does the anchoring), then steer to Growth as the recommendation. Step down to Starter only on price resistance; nudge up to Pro only when a prospect has existing software (CRM/POS) they want connected. This keeps the anchor lift while matching what people actually buy.
 
 ## Positioning Statement
 
@@ -68,10 +68,15 @@ The name does three jobs at once:
 ## Talking About It vs. the Tiers
 
 **Opening move (default):**
-> "The way most of my clients go is the All-in-One Growth System — it's the whole thing set up and running for you. Want me to walk you through what's included?"
+> "We've got everything from a starter site up to the full All-in-One Growth System that runs your whole operation for you. For most businesses like yours, though, the sweet spot is our Growth package — website, missed-call text-back, AI chat, online booking, and automatic review requests, all done for you, for $397 a month. Want me to walk you through it?"
+>
+> *(The flagship named at the top does the anchoring; you land on Growth as the recommendation.)*
 
 **If price is a hesitation:**
-> "Totally fair. The full System is the fastest way to get everything working together, but we don't have to start there. We can begin with just the Starter piece — the site and the call-back — and add the rest as it pays for itself."
+> "Totally fair. Growth's the sweet spot, but we don't have to start there. We can begin with just the Starter piece — the site and the missed-call text-back — for $247, and add booking and reviews as it pays for itself."
+
+**If they clearly want everything run for them (or mention content, an answering service, multiple channels):**
+> "Then the full All-in-One Growth System is built for you — it's every layer running on autopilot, including done-for-you content and an AI phone desk. That's the top of the line at $997 a month."
 
 **If they're a tire-kicker who wants to compare pieces:**
 > "You *can* buy these individually, and I'll show you the tiers. But the reason the System is priced the way it is: the pieces are worth more together than apart. The website captures the lead, the call-back saves it, the follow-up closes it. Buy just one and you're plugging one hole in a leaky bucket."
