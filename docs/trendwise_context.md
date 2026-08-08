@@ -43,7 +43,7 @@ The name does three jobs at once:
 | **Role in the lineup** | Entry + expansion path | Flagship / anchor offer |
 | **Positioning** | "Build your system piece by piece" | "The whole growth system, done" |
 
-**Key move — anchor high, recommend Growth.** Let the All-in-One Growth System *anchor* the conversation as the ceiling: its price makes the tiers feel affordable, and it captures the rare buyer who wants us to run everything. But the flagship is **not** expected to be the volume seller — it only fits an owner who genuinely needs every layer (content, AI phone desk, white-glove). For the core of who we sell to — local service businesses and real estate pros — **Growth is the best-fit default and our most popular package**: website, missed-call text-back, AI chat, appointment booking, and review automation cover what they actually need at $397/mo. So name the full range (flagship at the top does the anchoring), then steer to Growth as the recommendation. Step down to Starter only on price resistance; nudge up to Pro only when a prospect has existing software (CRM/POS) they want connected. This keeps the anchor lift while matching what people actually buy.
+**Key move:** Lead every sales conversation with the All-in-One Growth System. The tiers become the fallback ("If the full System is more than you want to start with, we can begin with just the Starter piece and add on"). This is classic anchor pricing — the flagship makes the tiers feel affordable, and the tiers catch the buyers the flagship loses.
 
 ## Positioning Statement
 
@@ -68,15 +68,10 @@ The name does three jobs at once:
 ## Talking About It vs. the Tiers
 
 **Opening move (default):**
-> "We've got everything from a starter site up to the full All-in-One Growth System that runs your whole operation for you. For most businesses like yours, though, the sweet spot is our Growth package — website, missed-call text-back, AI chat, online booking, and automatic review requests, all done for you, for $397 a month. Want me to walk you through it?"
->
-> *(The flagship named at the top does the anchoring; you land on Growth as the recommendation.)*
+> "The way most of my clients go is the All-in-One Growth System — it's the whole thing set up and running for you. Want me to walk you through what's included?"
 
 **If price is a hesitation:**
-> "Totally fair. Growth's the sweet spot, but we don't have to start there. We can begin with just the Starter piece — the site and the missed-call text-back — for $247, and add booking and reviews as it pays for itself."
-
-**If they clearly want everything run for them (or mention content, an answering service, multiple channels):**
-> "Then the full All-in-One Growth System is built for you — it's every layer running on autopilot, including done-for-you content and an AI phone desk. That's the top of the line at $997 a month."
+> "Totally fair. The full System is the fastest way to get everything working together, but we don't have to start there. We can begin with just the Starter piece — the site and the call-back — and add the rest as it pays for itself."
 
 **If they're a tire-kicker who wants to compare pieces:**
 > "You *can* buy these individually, and I'll show you the tiers. But the reason the System is priced the way it is: the pieces are worth more together than apart. The website captures the lead, the call-back saves it, the follow-up closes it. Buy just one and you're plugging one hole in a leaky bucket."
@@ -716,6 +711,31 @@ These fields populate the AI Front Desk voice agent system prompt and knowledge 
 - Language — English only, or bilingual (specify)
 - Top FAQs — the real questions callers ask most, with the answers (collect as many as possible)
 
+## Intake Form → Google Sheet Pipeline (built)
+
+The intake IS the contact-capture, so forms are built native in GHL (not Google Forms) — one capture becomes both the CRM contact and the template data.
+
+**Two GHL forms, matching the two sheet tabs:**
+- **Core Intake** → writes to Core Client Data tab (all clients)
+- **AI Front Desk Intake** → writes to AI Front Desk tab (AI Front Desk clients only)
+
+**Field mapping:** name/email/phone → GHL STANDARD contact fields (so a proper CRM contact is created + pre-fill works); everything else → custom fields grouped "Client Intake," named to match sheet columns.
+
+**GHL → Sheet bridge:** GHL's native premium Google Sheets action (cost is trivial against a pre-collected setup fee + first month). Validated behavior: maps by header/NAME (order-independent, not position), maps to the **row-1 tokens** (the same `[TOKEN]` the find-and-replace uses — one identifier end to end), writes standard + custom fields together, **appends to the next clear row**, preserves the three-row header. Sheet needs no structural change.
+- **Gotcha learned:** a stray column checkmark in the Sheets action mapping throws off the whole alignment — uncheck any column not being written.
+
+**Two separate transfer workflows** (one per form), each triggered by Form Submitted → specific form. NOT one workflow with two triggers: each trigger is a separate run and the premium action fires per-run regardless, so two clean workflows is the right pattern. Tabs link by Business Name at script-run time, not write-time, so the two writes need not be synchronized.
+
+**Form delivery + pre-fill:** a standalone form share-link does NOT carry contact context (pre-fill fails). Solution: drop the form onto a **funnel page**; a workflow emails the funnel-page link; GHL appends the contact identity so pre-fill fires. Funnel published at `link.trendwisebizservices.com` (the functional-pages subdomain). Name/phone/email pre-fill reliably; Business Name (standard Company Name field) does not pre-fill reliably — not worth chasing on Core (client types it, 5-sec field). It only matters as the AI-tab link key (see below).
+
+**Two-tab linkage:** the AI Front Desk row links to the Core row by **Business Name match** (script-run time, not row position — rows can land at different times/numbers and still link). Primary defense against mismatch: pre-fill Business Name on the AI form from the contact record so it's never retyped. Backup (deferred): script normalization (trim + case-insensitive). Currently relying on pre-fill.
+
+## AI Front Desk Tag Logic (`has-ai-front-desk`)
+
+AI Front Desk arrives two ways — as a standalone add-on OR bundled in All-in-One. A single tag `has-ai-front-desk` is applied in BOTH cases (auto-applied via product-purchased automation: one trigger for the add-on product, one for the All-in-One product, both applying the same tag). Downstream automations check that one tag rather than re-evaluating "add-on or tier" each time — one feature, one flag.
+
+**Intake-sending workflow (deferred build):** one workflow sends the Core form to everyone, then an if/else checks `has-ai-front-desk` → if true, also send the AI Front Desk form. The branch gates only the second form; Core goes to all.
+
 ---
 
 # PART 9 — REVENUE MODEL
@@ -764,8 +784,8 @@ Then the recurring plan bills again every 30 days. **Setup covers the build; mon
 | GHL Voice AI / AI Employee | Inbound AI phone answering (AI Front Desk addon) — enable $97/mo unlimited plan per client, inbound only |
 | GHL Content AI | Social post + email content generation (content automation addon) |
 | GHL Social Planner | Scheduling automated social content (content automation addon) |
-| GHL SaaS Mode | White-labeled client portal + Stripe recurring billing |
-| Stripe | Payment processing (connected to GHL) |
+| GHL SaaS Mode | White-labeled client portal + recurring billing |
+| Payment processor | Any GHL-compatible processor (not Stripe-specific) — connected to GHL |
 | n8n | External integrations (Pro + All-in-One + standalone addon) |
 | Google Sheets | Client database / onboarding tracker |
 | Google Docs | Template documents (website copy, AI widget prompt) |
@@ -823,6 +843,18 @@ The "handshake to paid-and-signed" flow, built entirely inside GHL — no DocuSi
 **Per-client flow:** lead says yes → open template, pre-fill package + fees → hand iPad or send link → client signs (+ electronic consent) → Workflow A auto-invoices → client pays → Workflow B moves to build → clone master, run doc-generator script, onboard.
 
 **Key payoffs:** one signature covers services + SMS consent (the addendum is part of the signed contract); the signed tier maps to the correct recurring product so one signature becomes ongoing monthly revenue automatically. See the standalone "GHL Contract → Invoice Flow" build guide for the full phased checklist.
+
+**Discovery — "collect payment after signing":** GHL's Documents & Contracts has a native "collect payment after signing" feature and an embeddable product-list element that pulls from Payments products (displays pricing AND ties to the invoice). Enabling it collapses sign-and-pay into one iPad flow, largely replacing Workflow A (Contract Signed → generate invoice). Workflow B (Invoice Paid → onboard) still valuable. The recurring product's built-in custom setup-fee field means ONE product per tier handles both monthly + editable setup — no separate setup products.
+
+## Website Booking Flow (built)
+
+Public site (trendwisebizservices.com) drives to a discovery call. On the homepage hero and the CRM page CTA, a **"Book a Discovery Call"** button opens a modal embedding the GHL discovery-call calendar (`link.trendwisebizservices.com/widget/booking/…`, official embed with `form_embed.js` from the own subdomain). A separate "Start a Conversation / send a message" button opens the existing contact-form modal — two distinct modals so the two intents (ready-to-book vs. ask-a-question) stay separate. Booking lands on the GHL calendar and fires whatever confirmation/reminder workflow is attached. Contact and booking flows are independent and don't interfere.
+
+## A2P 10DLC Registration (see standalone guide)
+
+SMS features (missed-call text-back, reminders, review requests) require A2P 10DLC carrier approval before they can send — a review that can take longer than the 48-hour build. The public CRM page carries an honest caveat: build is live in 48 hours, but text messaging depends on carrier approval that can take a few extra days; everything else works day one.
+
+**Default path = Quick Setup**, where the GHL chat widget IS the registered opt-in — which is why the page can't have other SMS-consent forms during review. Plan: minimal page (widget only) for approval, restore forms after. **Load-bearing risk:** carriers can re-verify the opt-in URL anytime; restoring forms is only safe if they don't recreate competing SMS-opt-in mechanisms (or carry the same consent language). Confirm with GHL's LC Phone specialist team before scaling. Don't send SMS while the campaign is Pending. Full detail in the standalone `A2P_Registration_Sequencing.md` guide.
 
 ---
 
