@@ -1,0 +1,160 @@
+# Discovery Call — Sales Pipeline & Booking Workflow
+
+> **Purpose:** Trendwise's own sales pipeline and the automation that runs a prospect from "booked a discovery call" through confirmation, reminders, and no-show follow-up. This is the agency's sales engine — separate from the client-facing appointment systems built into the master template.
+>
+> **SMS status:** Trendwise's number is A2P-approved under a **mixed use case**, which covers confirmations, reminders, and the no-show follow-up. SMS sends immediately — no pre-approval waiting period.
+
+---
+
+## PART 1 — The Pipeline: "Trendwise Sales"
+
+Built in **Opportunities → Pipelines**. Five stages, starting at the booking (pre-booking leads live as contacts/tags, not in this pipeline — keeps it lean and active-only).
+
+| # | Stage | Meaning |
+|---|---|---|
+| 1 | **Discovery Call Booked** | Prospect grabbed a slot on the calendar. Workflow drops them here on booking. |
+| 2 | **Call Completed** | The call happened and they showed up. **Manually dragged here after the call** — this move is the "did they show?" signal the no-show automation reads. |
+| 3 | **Proposal Sent** | Package recommended, contract/order form sent. |
+| 4 | **Won** | Signed + paid. Hands off to the contract → invoice → onboard chain. Mark as won-status stage for reporting. |
+| 5 | **Lost** | Didn't move forward (no-show that never rebooked, said no, went cold). Mark as lost-status stage. |
+
+**Why "Booked" and "Completed" are separate:** the gap between them is where no-shows live. Separating them lets the workflow detect a no-show by checking whether the opportunity is still sitting in "Discovery Call Booked" after the call time. Merging them would lose that automation hook.
+
+**Stage transitions = automation trigger points:**
+- Enters **Discovery Call Booked** → confirmation + reminders (this workflow)
+- Still in **Booked** after call time → no-show follow-up (this workflow)
+- Enters **Proposal Sent** → (future) nudge if no signature
+- Enters **Won** → contract → invoice → onboard chain
+
+---
+
+## PART 2 — The Workflow: "Discovery Call — Booking & Follow-up"
+
+**Note on opportunity creation:** this GHL version has no calendar-level "create opportunity" setting (checked Connections/Advanced — not present). The workflow creates the opportunity as its first action instead. This is the current standard pattern and keeps all booking logic in one place.
+
+### Trigger
+- **Appointment Booked** (Customer Booked Appointment)
+- Filter: **Calendar = discovery-call calendar** (only this calendar fires it)
+
+### Step 1 — Create Opportunity
+- Action: Create/Update Opportunity
+- Pipeline: **Trendwise Sales** · Stage: **Discovery Call Booked**
+
+### Step 2 — Confirmation (fires immediately, both channels)
+- Send Email + Send SMS (copy below)
+
+### Step 3 — Reminder, 24 hours before
+- Wait: **event-relative, 24 hours before appointment** (NOT a fixed "wait 24h" — must anchor to appointment time, or it breaks for calls booked days out)
+- Send SMS + Email
+
+### Step 4 — Reminder, 1 hour before
+- Wait: **event-relative, 1 hour before appointment**
+- Send SMS + Email
+
+### Step 5 — No-show check
+- Wait: **event-relative, 1 hour AFTER appointment** (lets the call time pass)
+- If/Else: is opportunity still in stage **"Discovery Call Booked"**?
+  - **YES** (didn't show — a show-up would've been dragged to "Call Completed") → Send no-show SMS + Email
+  - **NO** (moved to Completed) → end
+
+**The load-bearing habit:** after every call, drag the prospect from "Discovery Call Booked" → "Call Completed." That manual move is what tells the workflow they showed up. Anyone left in "Booked" after the call is treated as a no-show.
+
+### Channel logic
+Both SMS and email fire at each step (Option A — belt and suspenders). SMS reaches those who consented; email is the guaranteed-delivery baseline for everyone (including prospects who don't opt into texts). Redundancy is harmless for appointment reminders and reduces no-shows.
+
+---
+
+## PART 3 — Message Copy
+
+Merge fields: `{{contact.first_name}}`, `{{appointment.start_time}}`, `{{appointment.meeting_location}}` (use GHL's merge-field picker to confirm the exact appointment-location/link token in your version). Replace `[BOOKING LINK]` with `link.trendwisebizservices.com/widget/booking/5JH7xTtTErrZLuHXHejj`.
+
+### Confirmation — Email
+**Subject:** You're booked! Your Trendwise discovery call
+
+Hi {{contact.first_name}},
+
+You're all set — your discovery call is confirmed for **{{appointment.start_time}}**.
+
+Here's what to expect: it's a relaxed, no-pressure conversation about your business, what's slipping through the cracks, and whether we're a fit to help. No slides, no hard sell — just a straight talk about your goals and how a done-for-you system could work for you.
+
+**Join here:** {{appointment.meeting_location}}
+
+If you need to reschedule, just reply to this email and we'll sort it out.
+
+Talk soon,
+McKay
+Trendwise Business Services
+
+### Confirmation — SMS
+Hi {{contact.first_name}}, you're confirmed for your Trendwise discovery call on {{appointment.start_time}}. Join here: {{appointment.meeting_location}} — see you then! Reply STOP to opt out.
+
+### 24-Hour Reminder — SMS
+Hi {{contact.first_name}}, quick reminder — your Trendwise discovery call is tomorrow at {{appointment.start_time}}. Join here: {{appointment.meeting_location}}. Looking forward to it! Reply STOP to opt out.
+
+### 24-Hour Reminder — Email
+**Subject:** Reminder: your Trendwise discovery call is tomorrow
+
+Hi {{contact.first_name}},
+
+Just a friendly reminder that your discovery call is coming up tomorrow at **{{appointment.start_time}}**.
+
+It's a relaxed, no-pressure conversation — we'll talk through your business, what's slipping through the cracks, and whether we're a fit to help. Nothing to prepare; just bring your questions.
+
+**Join here:** {{appointment.meeting_location}}
+
+Need to reschedule? Just reply to this email and we'll find a better time.
+
+Looking forward to it,
+McKay
+Trendwise Business Services
+
+### 1-Hour Reminder — SMS
+Hi {{contact.first_name}}, your Trendwise discovery call starts in about an hour ({{appointment.start_time}}). Here's your link: {{appointment.meeting_location}} — talk soon! Reply STOP to opt out.
+
+### 1-Hour Reminder — Email
+**Subject:** Starting soon — your Trendwise discovery call
+
+Hi {{contact.first_name}},
+
+Your discovery call starts in about an hour, at **{{appointment.start_time}}**.
+
+**Join here:** {{appointment.meeting_location}}
+
+See you soon!
+
+McKay
+Trendwise Business Services
+
+### No-Show Follow-up — SMS
+Hi {{contact.first_name}}, sorry we missed each other today! No worries — things come up. Grab a new time that works for you here: [BOOKING LINK] — I'd still love to talk. Reply STOP to opt out.
+
+### No-Show Follow-up — Email
+**Subject:** Sorry we missed you — let's find another time
+
+Hi {{contact.first_name}},
+
+Looks like we didn't connect for your discovery call today — no problem at all, life happens.
+
+If you're still interested in talking through how a done-for-you system could help your business, I'd genuinely love to connect. You can grab a new time that works better for you here:
+
+**[BOOKING LINK]**
+
+And if the timing just isn't right, no worries — feel free to reach out whenever you're ready.
+
+Best,
+McKay
+Trendwise Business Services
+
+---
+
+## Build order
+1. Build the pipeline (5 stages) first.
+2. Build the workflow trigger + Step 1 (create opportunity), test a booking lands in "Discovery Call Booked."
+3. Add confirmation (Step 2), test it fires.
+4. Add reminders (Steps 3–4) with event-relative waits.
+5. Add the no-show if/else (Step 5) last.
+6. End-to-end test: book a test slot → confirm opportunity + confirmation → (optionally) verify a no-show fires by leaving a test opportunity in "Booked" past its time.
+
+---
+
+*Trendwise Business Services · K. McKay Larsen EA, Ltd. · Las Vegas, NV · Internal sales pipeline & workflow*
