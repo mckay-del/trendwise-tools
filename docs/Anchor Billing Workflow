@@ -1,0 +1,77 @@
+# Anchor Billing Workflow — Setup + First Month at Signing, Recurring on 1st/15th
+
+> **Purpose:** Collect setup + first month as a lump at signing, then anchor all future recurring billing to the 1st or 15th of the month — with no proration. Every mechanism below is **confirmed present** in the GHL account (verified field-by-field, not assumed).
+
+---
+
+## The policy this implements
+
+- **At signing:** client pays a lump = **setup fee + first month** (one-time). Card is captured.
+- **Recurring:** starts on the next anchor (1st or 15th) *after their prepaid month is used up*, then repeats monthly on that anchor.
+- **No proration.** The gap between "prepaid month ends" and "next anchor" is free goodwill — capped at ~2 weeks by using two anchors (1st & 15th) instead of one.
+- **Why two anchors:** a couple weeks free is acceptable goodwill; a whole month free (single anchor) is not. Two anchors caps the giveaway.
+- **The double-bill trap (critical):** because they prepaid a full month, the recurring must NOT start on the *immediate* next anchor (could be days away → double charge). It must start on the anchor *after* the prepaid ~30 days. The 31-day wait below handles this.
+
+---
+
+## Step 1 — Two products (Payments → Products)
+
+1. **Signup product (one-time)** — name e.g. "Service Signup — Setup + First Month." Type: **One-Time**. Price: **setup fee + one month** (the lump due at signing). This captures the card and is the workflow trigger.
+2. **Recurring product (monthly)** — name e.g. "Monthly Membership — Ongoing." Type: **Recurring / Monthly**. Price: full monthly amount. This is what the recurring invoice bills from the anchor onward.
+
+*(Per tier, you'd have a signup product and a recurring product. The signup product's price = that tier's setup + that tier's monthly.)*
+
+---
+
+## Step 2 — The workflow
+
+**Trigger:** Order/Signup product purchased (the one-time signup product).
+
+**Action 1 — Wait "For a set period of time": 31 days.**
+Burns through the prepaid month so the recurring can't double-bill. Use 31 (not 30) to cover long months and guarantee the prepaid month is fully consumed.
+
+**Action 2 — If/Else (condition: "Current Day of month"):**
+- **Branch A:** Current Day of month **is on or before 14** → go to Action 3A.
+- **None / else** (days 15–31): → go to Action 3B.
+
+*(Note: this evaluates the day of month AFTER the 31-day wait, not the signup day — so it routes to the nearest anchor from that point.)*
+
+**Action 3A — Wait "Until a recurring window opens":** Frequency **Monthly**, **Day 15**, all 12 months.
+**Action 3B — Wait "Until a recurring window opens":** Frequency **Monthly**, **Day 1**, all 12 months.
+
+*(A single recurring-window wait only targets ONE day of the month — that's why the branch splits into two waits.)*
+
+**Action 4 — Both branches converge → "Send recurring invoice" (Payments action):**
+- **From User:** (McKay)
+- **Invoice Template:** the recurring product
+- **Payment Mode (Live):** ON
+- **Start Date:** **Action Date** (recurring begins when the contact reaches this step — i.e., right after the anchor wait releases them, so it anchors to that day)
+- **End:** **Never** (perpetual — never bill-once-and-stop)
+- **How Often:** Monthly, Every **1**
+- **Enable Autopayment:** **ON** — "card used to pay first invoice will be auto-deducted for subsequent invoices" (uses the signing card automatically)
+- **Channel:** Email & Text
+
+---
+
+## Flow, end to end
+
+Client signs → pays setup + first month lump (card captured) → 31-day wait burns the prepaid month → branch checks day of month → waits until the next 1st or 15th → recurring invoice starts there, auto-charging the saved card, monthly, forever.
+
+**Example (signs up Oct 5):** pays lump Oct 5 → 31-day wait to ~Nov 5 → day is 5 (≤14) → wait until Nov 15 → recurring starts Nov 15, repeats the 15th monthly. Free goodwill days: ~Nov 5–15.
+
+---
+
+## Confirmed mechanisms (all verified in-account)
+- ✅ Set-period wait (burn prepaid month)
+- ✅ "Current Day of month" If/Else condition with is-on-or-before operator
+- ✅ "Until a recurring window opens" wait — Monthly, single day-of-month
+- ✅ "Send recurring invoice" action with Start=Action Date, End=Never, Autopayment ON
+
+## To verify in a test run
+- That **Start Date = Action Date + Monthly** anchors the recurring cycle to the day they clear the wait (should recur that same date each month).
+- That autopayment actually charges the saved card at the anchor (vs. just emailing an invoice).
+- Run a full test with shortened waits (minutes instead of days) to watch the whole chain fire.
+
+---
+
+*Trendwise Business Services · K. McKay Larsen EA, Ltd. · Las Vegas, NV · Internal billing build — all mechanisms verified in GHL*
