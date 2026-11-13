@@ -8,6 +8,7 @@ import * as banking from './views/banking.js';
 import * as accounting from './views/accounting.js';
 import * as reports from './views/reports.js';
 import * as settings from './views/settings.js';
+import * as pkg from './views/package.js';
 
 const state = { user: null, meta: null, company: null, capi: null, companies: [] };
 
@@ -53,6 +54,8 @@ const ROUTES = [
   ['c/:cid/accounts', accounting.chart],
   ['c/:cid/reports', reports.index],
   ['c/:cid/reports/:name', reports.view],
+  ['c/:cid/package', pkg.setup],
+  ['c/:cid/package/print', pkg.print, { bare: true }],
   ['c/:cid/settings', settings.company],
   ['c/:cid/audit', settings.audit],
 ];

@@ -10,6 +10,9 @@ import * as txns from './services/transactions.js';
 import * as bank from './services/banking.js';
 import * as reports from './services/reports.js';
 import { listAudit } from './services/audit.js';
+import * as saved from './services/saved.js';
+import { getFirm, saveFirm } from './services/firm.js';
+import { createBackup, lastBackup } from './backup.js';
 
 const PUBLIC = join(dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json' };
@@ -40,7 +43,16 @@ export function buildRouter(db) {
   r.put('/api/users/:id', (ctx) => auth.updateUser(db, id(ctx), ctx.body, ctx.user), { admin: true });
 
   // --- Meta ---
-  r.get('/api/meta', () => ({ account_types: ACCOUNT_TYPES, txn_types: txns.TXN_TYPES, reports: reports.REPORTS }));
+  r.get('/api/meta', () => ({ account_types: ACCOUNT_TYPES, txn_types: txns.TXN_TYPES, reports: reports.REPORTS, periods: reports.PERIODS, gl_columns: reports.GL_COLUMNS, gl_default_columns: reports.GL_DEFAULT_COLUMNS }));
+
+  // --- Firm branding & backups ---
+  r.get('/api/firm', () => getFirm(db));
+  r.put('/api/firm', (ctx) => saveFirm(db, ctx.body, uid(ctx)), { admin: true });
+  r.get('/api/backup', () => ({ last_backup: lastBackup(db) }), { admin: true });
+  r.post('/api/backup', (ctx) => {
+    const bytes = createBackup(db, ctx.body.passphrase);
+    return { __raw: bytes, type: 'application/octet-stream', filename: `ledger-backup-${new Date().toISOString().slice(0, 10)}.twlbak` };
+  }, { admin: true });
 
   // --- Companies ---
   r.get('/api/companies', () => names.listCompanies(db));
@@ -103,6 +115,12 @@ export function buildRouter(db) {
   r.put('/api/c/:cid/reconcile/:id', (ctx) => bank.saveClearedFlags(db, cid(ctx), id(ctx), ctx.body));
   r.post('/api/c/:cid/reconcile/:id/finish', (ctx) => bank.finishReconciliation(db, cid(ctx), id(ctx), ctx.body, uid(ctx)), { closeBooks: false });
   r.post('/api/c/:cid/reconcile/:id/undo', (ctx) => bank.undoLastReconciliation(db, cid(ctx), id(ctx), uid(ctx)), { closeBooks: true });
+
+  // --- Saved reports ---
+  r.get('/api/c/:cid/saved-reports', (ctx) => saved.listSaved(db, cid(ctx)));
+  r.post('/api/c/:cid/saved-reports', (ctx) => saved.saveReport(db, cid(ctx), ctx.body, null, uid(ctx)));
+  r.put('/api/c/:cid/saved-reports/:id', (ctx) => saved.saveReport(db, cid(ctx), ctx.body, id(ctx), uid(ctx)));
+  r.delete('/api/c/:cid/saved-reports/:id', (ctx) => saved.deleteSaved(db, cid(ctx), id(ctx), uid(ctx)));
 
   // --- Reports ---
   r.get('/api/c/:cid/reports/:name', (ctx) => {

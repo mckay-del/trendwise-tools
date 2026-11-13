@@ -9,6 +9,8 @@
     "start": "node --disable-warning=ExperimentalWarning server/index.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
     "seed:demo": "node --disable-warning=ExperimentalWarning server/seed-demo.js",
+    "backup": "node --disable-warning=ExperimentalWarning server/backup-cli.js backup",
+    "restore": "node --disable-warning=ExperimentalWarning server/backup-cli.js restore",
     "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
   }
 }

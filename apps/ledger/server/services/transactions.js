@@ -276,6 +276,7 @@ function normalize(db, company, body, existing) {
         const p = available.get(linked);
         if (!p) throw bad(`Line ${i + 1}: that payment is not in Undeposited Funds (already deposited?)`);
         if (seen.has(linked)) throw bad('The same payment is listed twice');
+        if (p.date > date) throw bad(`Line ${i + 1}: ${TXN_TYPES[p.type].label.toLowerCase()} ${p.number ?? ''} is dated ${p.date}, after this deposit (${date}). A deposit can't include money received later.`.replace(/\s+/g, ' '));
         seen.add(linked);
         lines.push({ linked_txn_id: linked, account_id: uf.id, customer_id: p.customer_id, description: str(l.description) ?? `${TXN_TYPES[p.type].label} ${p.number ?? ''}`.trim(), amount: p.total });
         return;
@@ -494,8 +495,9 @@ export function updateTransaction(db, companyId, id, body, userId = null) {
       if (otherParty) throw bad("Can't change the customer/vendor while payments are applied");
     }
     if (existing.type === 'payment' || existing.type === 'sales_receipt') {
-      const dep = db.get(`SELECT 1 FROM transaction_lines l JOIN transactions d ON d.id = l.transaction_id WHERE l.linked_txn_id = ? AND d.status='posted' LIMIT 1`, id);
+      const dep = db.get(`SELECT d.date FROM transaction_lines l JOIN transactions d ON d.id = l.transaction_id WHERE l.linked_txn_id = ? AND d.status='posted' LIMIT 1`, id);
       if (dep && (h.total !== existing.total || h.account_id !== existing.account_id)) throw bad('This payment has been deposited. Remove it from the deposit before changing the amount or account.');
+      if (dep && h.date > dep.date) throw bad(`This payment was deposited on ${dep.date}, so it can't be dated later than that.`);
     }
     const prevJournal = db.all('SELECT * FROM journal_lines WHERE transaction_id = ?', id);
     db.run(`UPDATE transactions SET number=?, date=?, due_date=?, customer_id=?, vendor_id=?, account_id=?, to_account_id=?, tax_rate_id=?, subtotal=?, tax_amount=?, total=?, memo=?, billing_address=?, updated_at=datetime('now') WHERE id=?`,

@@ -50,11 +50,13 @@ describe('sales cycle', () => {
     assert.equal(getTransaction(db, co.id, inv.id).status_label, 'Paid');
     assert.equal(undepositedFunds(db, co.id).length, 1);
 
+    assert.throws(() => createTransaction(db, co.id, { type: 'deposit', date: '2026-01-19', account_id: A('Business Checking'), lines: [{ linked_txn_id: pay.id }] }), /after this deposit/);
     createTransaction(db, co.id, { type: 'deposit', date: '2026-01-21', account_id: A('Business Checking'), lines: [{ linked_txn_id: pay.id }] });
     assert.equal(bal('Undeposited Funds'), 0);
     assert.equal(bal('Business Checking'), 60000);
     assert.equal(undepositedFunds(db, co.id).length, 0);
     assert.throws(() => deleteTransaction(db, co.id, pay.id), /deposited/);
+    assert.throws(() => updateTransaction(db, co.id, pay.id, { date: '2026-01-25', customer_id: cust.id, total: 600, applications: [{ target_txn_id: inv.id, amount: 600 }] }), /can't be dated later/);
     assert.throws(() => deleteTransaction(db, co.id, inv.id), /applied/);
   });
 
@@ -196,8 +198,8 @@ describe('reports', () => {
   test('general ledger running balance', () => {
     seed();
     const gl = runReport(db, company(), 'general_ledger', { from: '2026-01-01', to: '2026-03-31', account_id: String(A('Business Checking')) });
-    assert.equal(gl.rows[1].cells[7], 1300000);
-    assert.equal(gl.rows.at(-1).cells[7], 1340000);
+    assert.equal(gl.rows[1].cells[8], 1300000);
+    assert.equal(gl.rows.at(-1).cells[8], 1340000);
   });
 });
 

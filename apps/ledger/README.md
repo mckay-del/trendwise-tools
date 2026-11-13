@@ -35,6 +35,10 @@ Run tests with `npm test`.
 | **Reconcile** | Statement ending balance/date, tick cleared items, live difference, save for later, finish only at $0.00 difference, history, undo last reconciliation. Reconciled transactions are locked |
 | **Accounting** | Chart of accounts with sub-accounts, detail types, system accounts, inactive accounts; journal entries with A/R–A/P name enforcement and auto-balancing; transfers; void vs. delete; full audit log |
 | **Reports** | P&L (accrual **or cash basis**, total or by month), Balance Sheet, Statement of Cash Flows, Trial Balance, General Ledger / account QuickReport, Journal, Transaction List, A/R & A/P Aging (summary + detail), Sales by Customer / by Product, Sales Tax Liability, Expenses by Vendor, **1099 Contractor Summary**, Account List. Drill-down to transactions; CSV export; print |
+| **Report customization** | **P&L**: compare to previous year or previous period with $ and % change, % of income, columns by month or quarter, filter by customer or vendor, show zero rows. **Balance Sheet**: compare to prior year / prior month-end with $ and % change. **General Ledger**: pick accounts, choose columns (incl. **Split**), sort by date/number/name/amount, filter by customer or vendor |
+| **Saved reports** | Save any customization by name and rerun it in one click. Relative periods (“Last month”, “This fiscal year to date”, …) are stored as the period, so a saved report stays current |
+| **Client report package** | Firm-branded, print-ready statements (cover page with your note, P&L, Balance Sheet, optional GL and A/R / A/P aging), each on its own page with repeating headers and your disclaimer footer. Print or **Save as PDF** from the browser |
+| **Backups** | Settings → *Download encrypted backup* (AES-256-GCM, passphrase-derived key). Command line: `npm run backup` / `npm run restore` |
 | **Users** | Admin / Accountant / Standard / Viewer roles |
 
 ## Accounting design
@@ -46,6 +50,20 @@ Run tests with `npm test`.
 - **Cash-basis P&L** recognizes invoice/bill lines proportionally on the dates they are paid; sales receipts, expenses, checks, deposits and journal entries are recognized on their own dates.
 - **1099-NEC** uses only payments from bank accounts (card payments are reported on 1099-K) and applies the $600 threshold through tax year 2025 and $2,000 for payments after 2025.
 - **Controls:** closing date blocks add/edit/void/delete on or before it; reconciled items can't be changed; documents with payments applied, or payments already deposited, can't be deleted or voided until unlinked; all changes are written to the audit log.
+
+## Backups
+
+```bash
+npm run backup                                      # prompts for a passphrase; writes ./backups/ledger-backup-<timestamp>.twlbak
+npm run restore -- backups/<file>.twlbak --to restored.db
+LEDGER_DB=restored.db npm start                     # run from the restored copy
+```
+
+Backups contain every company. They are encrypted with a key derived from your passphrase (scrypt); **a lost passphrase cannot be recovered**. Store backups off this computer. Set `LEDGER_BACKUP_PASSPHRASE` to schedule `npm run backup` with cron or Windows Task Scheduler. Settings shows the date of the last backup and turns red after 7 days.
+
+## Recommended setup (internal firm tool)
+
+Clients never log in; you send them the report package. Run the app on your own computer (it listens on `127.0.0.1` only by default), turn on full-disk encryption (FileVault / BitLocker), and keep regular encrypted backups off the machine. Document these controls in your written information security plan (FTC Safeguards Rule / IRS Pub. 4557).
 
 ## Security
 
@@ -67,7 +85,10 @@ apps/ledger/
 │   │   ├── reports.js      financial statements & reports
 │   │   ├── banking.js      import, feed, rules, reconciliation
 │   │   ├── accounts.js     chart of accounts
-│   │   └── names.js        companies, customers, vendors, items, tax rates
+│   │   ├── names.js        companies, customers, vendors, items, tax rates
+│   │   ├── saved.js        saved (memorized) reports
+│   │   └── firm.js         firm branding for client packages
+│   ├── backup.js / backup-cli.js   encrypted backup & restore
 │   └── seed-demo.js
 ├── public/                 single-page app (no build step)
 └── test/                   node:test suites (engine + HTTP)
@@ -75,4 +96,4 @@ apps/ledger/
 
 ## Known gaps / next steps
 
-Inventory (quantity on hand / FIFO), payroll, estimates & purchase orders, recurring transactions, emailing invoices, live bank connections (Plaid), classes/locations, budgets, multi-currency, attachments, and per-company user access are not yet built. Cash basis applies to the P&L only.
+Inventory (quantity on hand / FIFO), payroll, estimates & purchase orders, recurring transactions, emailing invoices, live bank connections (Plaid), classes/locations, budgets, multi-currency, attachments, and per-company user access are not yet built. Cash basis applies to the P&L only. PDFs are produced with the browser's “Save as PDF” rather than generated on the server.

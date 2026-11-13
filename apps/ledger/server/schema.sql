@@ -246,3 +246,15 @@ CREATE TABLE IF NOT EXISTS audit_log (
   summary TEXT
 );
 CREATE INDEX IF NOT EXISTS ix_audit_company ON audit_log(company_id, at);
+
+CREATE TABLE IF NOT EXISTS saved_reports (
+  id INTEGER PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  report TEXT NOT NULL,
+  params TEXT NOT NULL DEFAULT '{}',   -- JSON of report query params (uses relative periods where chosen)
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (company_id, name)
+);

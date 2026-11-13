@@ -66,7 +66,7 @@ for (const inv of invoices.slice(0, -4)) {
 }
 payments.push(T({ type: 'payment', date: d(70), customer_id: cust['Henderson Dental Group'], total: 4000, applications: [{ target_txn_id: proj.id, amount: 4000 }] }));
 // Deposit all but the last three payments.
-const toDeposit = payments.filter((p) => p.date <= addDays(today(), -30));
+const toDeposit = payments.filter((p) => p.date <= addDays(today(), -30)).sort((a, b) => a.date.localeCompare(b.date));
 for (let i = 0; i < toDeposit.length; i += 3) {
   const batch = toDeposit.slice(i, i + 3);
   T({ type: 'deposit', date: addDays(batch.at(-1).date, 1), account_id: A['Business Checking'], lines: batch.map((p) => ({ linked_txn_id: p.id })) });
