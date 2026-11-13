@@ -130,6 +130,15 @@ describe('journal entries & controls', () => {
     assert.throws(() => updateTransaction(db, co.id, je.id, { date: '2026-02-15', lines: [{ account_id: A('Business Checking'), debit: 100 }, { account_id: A("Owner's Investment"), credit: 100 }] }), /closed/);
   });
 
+  test('a stale edit is refused instead of overwriting someone else\'s change', () => {
+    const exp = createTransaction(db, co.id, { type: 'expense', date: '2026-02-01', account_id: A('Business Checking'), lines: [{ account_id: A('Rent & Lease'), amount: 2000 }] });
+    const opened = exp.updated_at;
+    const body = (amt) => ({ date: '2026-02-01', account_id: A('Business Checking'), lines: [{ account_id: A('Rent & Lease'), amount: amt }] });
+    updateTransaction(db, co.id, exp.id, { ...body(2100), expected_updated_at: opened }); // first person saves
+    assert.throws(() => updateTransaction(db, co.id, exp.id, { ...body(2200), expected_updated_at: opened }), (e) => e.status === 409 && /after you opened it/.test(e.message));
+    assert.equal(bal('Rent & Lease'), 210000);
+  });
+
   test('void removes postings but keeps the record', () => {
     const exp = createTransaction(db, co.id, { type: 'expense', date: '2026-02-01', account_id: A('Business Checking'), lines: [{ account_id: A('Rent & Lease'), amount: 2000 }] });
     voidTransaction(db, co.id, exp.id);

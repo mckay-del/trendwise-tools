@@ -1,4 +1,4 @@
-import { bad, notFound, toCents, requireDate, isDate, str, intOrNull, addDays, today, fmtMoney } from '../util.js';
+import { AppError, bad, notFound, toCents, requireDate, isDate, str, intOrNull, addDays, today, fmtMoney } from '../util.js';
 import { getAccount, systemAccount, ACCOUNT_TYPES } from './accounts.js';
 import { audit } from './audit.js';
 
@@ -484,6 +484,11 @@ export function updateTransaction(db, companyId, id, body, userId = null) {
     const existing = db.get('SELECT * FROM transactions WHERE id = ? AND company_id = ?', id, companyId);
     if (!existing) throw notFound('Transaction');
     if (existing.status === 'voided') throw bad('Voided transactions cannot be edited');
+    // Optimistic concurrency: refuse to overwrite a change someone else saved after this form was opened.
+    if (body.expected_updated_at && body.expected_updated_at !== existing.updated_at) {
+      const who = db.get(`SELECT u.name, l.at FROM audit_log l LEFT JOIN users u ON u.id = l.user_id WHERE l.company_id = ? AND l.entity_id = ? AND l.entity = ? ORDER BY l.id DESC LIMIT 1`, companyId, id, existing.type);
+      throw new AppError(409, `${who?.name ?? 'Someone else'} changed this ${TXN_TYPES[existing.type].label.toLowerCase()} after you opened it${who?.at ? ` (at ${who.at} UTC)` : ''}. Reload the page to see their changes, then make yours again.`);
+    }
     checkClosing(company, existing.date, 'edit');
     assertNotReconciled(db, id, 'edit');
     const { header: h, lines, applications } = normalize(db, company, { ...body, type: existing.type }, existing);
@@ -500,7 +505,7 @@ export function updateTransaction(db, companyId, id, body, userId = null) {
       if (dep && h.date > dep.date) throw bad(`This payment was deposited on ${dep.date}, so it can't be dated later than that.`);
     }
     const prevJournal = db.all('SELECT * FROM journal_lines WHERE transaction_id = ?', id);
-    db.run(`UPDATE transactions SET number=?, date=?, due_date=?, customer_id=?, vendor_id=?, account_id=?, to_account_id=?, tax_rate_id=?, subtotal=?, tax_amount=?, total=?, memo=?, billing_address=?, updated_at=datetime('now') WHERE id=?`,
+    db.run(`UPDATE transactions SET number=?, date=?, due_date=?, customer_id=?, vendor_id=?, account_id=?, to_account_id=?, tax_rate_id=?, subtotal=?, tax_amount=?, total=?, memo=?, billing_address=?, updated_at=strftime('%Y-%m-%d %H:%M:%f','now') WHERE id=?`,
       h.number, h.date, h.due_date, h.customer_id, h.vendor_id, h.account_id, h.to_account_id, h.tax_rate_id, h.subtotal, h.tax_amount, h.total, h.memo, h.billing_address, id);
     writeChildren(db, company, id, h, lines, applications, prevJournal);
     audit(db, { companyId, userId, action: 'update', entity: h.type, entityId: id, summary: `${TXN_TYPES[h.type].label} ${h.number ?? ''} ${fmtMoney(existing.total)} → ${fmtMoney(h.total)}`.replace(/\s+/g, ' ') });
@@ -519,7 +524,7 @@ export function voidTransaction(db, companyId, id, userId = null) {
     assertNotLocked(db, t, 'void');
     db.run('DELETE FROM applications WHERE source_txn_id = ?', id);
     db.run('DELETE FROM journal_lines WHERE transaction_id = ?', id);
-    db.run(`UPDATE transactions SET status='voided', memo = TRIM(COALESCE(memo,'') || ' [Voided ' || date('now') || ' — was ' || ? || ']'), subtotal=0, tax_amount=0, total=0, updated_at=datetime('now') WHERE id = ?`, fmtMoney(t.total), id);
+    db.run(`UPDATE transactions SET status='voided', memo = TRIM(COALESCE(memo,'') || ' [Voided ' || date('now') || ' — was ' || ? || ']'), subtotal=0, tax_amount=0, total=0, updated_at=strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ?`, fmtMoney(t.total), id);
     db.run("UPDATE transaction_lines SET amount = 0 WHERE transaction_id = ?", id);
     db.run("UPDATE bank_feed SET status='review', txn_id=NULL WHERE txn_id = ?", id);
     audit(db, { companyId, userId, action: 'void', entity: t.type, entityId: id, summary: `${TXN_TYPES[t.type].label} ${t.number ?? ''} ${fmtMoney(t.total)}`.replace(/\s+/g, ' ') });

@@ -32,6 +32,7 @@ export async function company(ctx) {
       </section>
       ${isAdmin ? raw(html`<section class="card"><h3>Backup <small>all companies</small></h3>
         <p class="${backupAge === null || backupAge > 7 ? 'bad' : 'muted'}">${backup.last_backup ? `Last backup: ${new Date(backup.last_backup).toLocaleString()} (${backupAge === 0 ? 'today' : `${backupAge} day${backupAge === 1 ? '' : 's'} ago`})` : 'No backup has been made yet.'}</p>
+        <p class="muted">Your books are stored on this computer at <code>${backup.db_path}</code>.</p>
         <p class="muted">Downloads an encrypted copy of every company's books. Keep it somewhere other than this computer (e.g. an encrypted drive or cloud folder). <b>The passphrase can't be recovered</b> — store it in your password manager.</p>
         <button class="btn btn-primary" data-action="backup">Download encrypted backup</button>
       </section>`) : ''}
