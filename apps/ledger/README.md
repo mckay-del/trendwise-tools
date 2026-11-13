@@ -31,6 +31,8 @@ Run tests with `npm test`.
 | **Sales** | Invoices (products/services, qty × rate, per-line taxable flag, sales tax), receive payment (auto-apply oldest-first, partial & over-payments), sales receipts, credit memos applied to invoices, printable invoice / PDF |
 | **Expenses** | Bills, pay bills, expenses (bank/card), checks, vendor credits; billable-customer tagging on lines; vendor default categories; 1099 tracking |
 | **Banking** | Upload CSV (Date/Description/Amount or Debit/Credit columns) or QFX/OFX; duplicate detection; **For review / Categorized / Excluded** tabs; add, match to existing transactions (±14 days, same amount), exclude, undo, bulk accept; **bank rules** with priority and auto-add; transfers and card payments recognized when the category is another balance-sheet account |
+| **Bank file uploads** | Preview before importing, with a column picker (header row, date, description, one amount or separate money-out/in columns, flip signs) remembered per account. Handles banks that put account details above the header, Excel (.xlsx), CSV and QFX/OFX. Each account shows **bank data through** and when it was last imported, and the upload screen tells you where to start the next download |
+| **Import from QuickBooks Online** | Settings → *Import from QuickBooks*. Uses QuickBooks' own Excel exports: **Account List** (types, detail types, sub-accounts, A/R and A/P linked to the system accounts, optional cleanup of unused starter accounts), **Customers**, **Vendors** (incl. 1099 flag and tax ID), and **opening balances** from a **Trial Balance** plus **A/R and A/P Aging Detail**, so open invoices, bills and customer/vendor aging carry over. Every step previews exactly what will happen; the opening-balance import can be undone |
 | **Deposits** | Payments land in Undeposited Funds by default and are grouped into bank deposits, plus other funds lines |
 | **Reconcile** | Statement ending balance/date, tick cleared items, live difference, save for later, finish only at $0.00 difference, history, undo last reconciliation. Reconciled transactions are locked |
 | **Accounting** | Chart of accounts with sub-accounts, detail types, system accounts, inactive accounts; journal entries with A/R–A/P name enforcement and auto-balancing; transfers; void vs. delete; full audit log |
@@ -50,6 +52,17 @@ Run tests with `npm test`.
 - **Cash-basis P&L** recognizes invoice/bill lines proportionally on the dates they are paid; sales receipts, expenses, checks, deposits and journal entries are recognized on their own dates.
 - **1099-NEC** uses only payments from bank accounts (card payments are reported on 1099-K) and applies the $600 threshold through tax year 2025 and $2,000 for payments after 2025.
 - **Controls:** closing date blocks add/edit/void/delete on or before it; reconciled items can't be changed; documents with payments applied, or payments already deposited, can't be deleted or voided until unlinked; all changes are written to the audit log.
+
+## Moving a client from QuickBooks Online
+
+1. Create the company, then open **Settings → Import from QuickBooks**.
+2. Pick a cutover date, ideally the end of a month you've reconciled in QuickBooks.
+3. Export from QuickBooks (Excel is fine): Account List, Customers, Vendors, then Trial Balance, A/R Aging Detail and A/P Aging Detail **as of the cutover date, accrual basis**.
+4. Import the four steps in order, previewing each.
+5. Compare the Balance Sheet, Trial Balance and both aging reports with QuickBooks as of the cutover date. They should match exactly.
+6. Set the closing date to the cutover date, and upload bank activity from the next day onward.
+
+Notes: the year-to-date income and expense balances on the trial balance post on the cutover date, so monthly P&L detail before the cutover stays in QuickBooks. Choose a fiscal year-end cutover if you want clean monthly reports for the new year. The opening bank balance is a single uncleared line. In your first reconciliation, tick it along with any checks that were still outstanding in QuickBooks.
 
 ## Backups
 
@@ -87,6 +100,8 @@ apps/ledger/
 │   │   ├── accounts.js     chart of accounts
 │   │   ├── names.js        companies, customers, vendors, items, tax rates
 │   │   ├── saved.js        saved (memorized) reports
+│   │   ├── qboImport.js    QuickBooks Online import (accounts, names, opening balances)
+│   │   ├── tabular.js      CSV and Excel (.xlsx) reader
 │   │   └── firm.js         firm branding for client packages
 │   ├── backup.js / backup-cli.js   encrypted backup & restore
 │   └── seed-demo.js

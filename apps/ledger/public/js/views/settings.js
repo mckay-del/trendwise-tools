@@ -11,7 +11,7 @@ export async function company(ctx) {
   const canClose = ['admin', 'accountant'].includes(ctx.user.role);
   const backupAge = backup?.last_backup ? Math.floor((Date.now() - Date.parse(backup.last_backup)) / 86400000) : null;
   ctx.el.innerHTML = html`<div class="page">
-    <div class="page-head"><h1>Settings</h1><div class="btn-row"><a class="btn" href="${ctx.chref('audit')}">Audit log</a>${ctx.user.role === 'admin' ? raw('<a class="btn" href="#/users">Manage users</a>') : ''}</div></div>
+    <div class="page-head"><h1>Settings</h1><div class="btn-row"><a class="btn" href="${ctx.chref('import')}">Import from QuickBooks</a><a class="btn" href="${ctx.chref('audit')}">Audit log</a>${ctx.user.role === 'admin' ? raw('<a class="btn" href="#/users">Manage users</a>') : ''}</div></div>
     <div class="settings-grid">
       <section class="card"><h3>Company</h3><form data-form="company">${raw(companyForm(c))}
         <div class="form-grid">${raw(field('Default payment terms (days)', html`<input name="default_terms_days" type="number" min="0" max="365" value="${c.default_terms_days}">`))}

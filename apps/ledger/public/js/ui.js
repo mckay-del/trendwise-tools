@@ -149,3 +149,19 @@ export function download(filename, text, type = 'text/csv') {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
+
+/** Read a chosen file for upload: Excel workbooks as base64, everything else as text. */
+export async function readUploadFile(file) {
+  if (!file) throw new Error('Choose a file');
+  if (file.size > 8 * 1024 * 1024) throw new Error('That file is too large (8 MB max)');
+  if (/\.(xlsx|xls)$/i.test(file.name)) {
+    const buf = new Uint8Array(await file.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+    return { file_name: file.name, data_base64: btoa(bin) };
+  }
+  return { file_name: file.name, content: await file.text() };
+}
+
+/** "2026-11-13 04:33:32" (UTC from SQLite) → local "11/13/2026" */
+export const fmtStamp = (s) => (s ? new Date(s.replace(' ', 'T') + 'Z').toLocaleDateString() : '');

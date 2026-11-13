@@ -617,10 +617,12 @@ export function dashboard(db, company) {
   const fy = fiscalYearStart(company, t);
   const banks = db.all(`SELECT a.id, a.name, a.type, COALESCE(SUM(j.debit),0) AS d, COALESCE(SUM(j.credit),0) AS c,
       (SELECT COUNT(*) FROM bank_feed f WHERE f.account_id = a.id AND f.status='review') AS to_review,
-      (SELECT MAX(r.statement_date) FROM reconciliations r WHERE r.account_id = a.id) AS last_reconciled
+      (SELECT MAX(r.statement_date) FROM reconciliations r WHERE r.account_id = a.id) AS last_reconciled,
+      (SELECT MAX(i.at) FROM bank_imports i WHERE i.account_id = a.id) AS last_import_at,
+      (SELECT MAX(f.date) FROM bank_feed f WHERE f.account_id = a.id) AS data_through
     FROM accounts a LEFT JOIN journal_lines j ON j.account_id = a.id
     WHERE a.company_id = ? AND a.type IN ('bank','credit_card') AND a.is_active = 1 GROUP BY a.id ORDER BY a.type, a.name`, company.id)
-    .map((a) => ({ id: a.id, name: a.name, type: a.type, balance: signed(a.type, a.d, a.c), to_review: a.to_review, last_reconciled: a.last_reconciled }));
+    .map((a) => ({ id: a.id, name: a.name, type: a.type, balance: signed(a.type, a.d, a.c), to_review: a.to_review, last_reconciled: a.last_reconciled, last_import_at: a.last_import_at, data_through: a.data_through }));
   const ar = openItemsAsOf(db, company.id, 'ar', t).filter((i) => i.type === 'invoice');
   const ap = openItemsAsOf(db, company.id, 'ap', t).filter((i) => i.type === 'bill');
   const months = [];
