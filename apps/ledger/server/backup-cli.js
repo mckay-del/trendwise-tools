@@ -6,7 +6,7 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { DatabaseSync } from 'node:sqlite';
-import { openDb } from './db.js';
+import { openDb, dataDir, migrateLegacyDb } from './db.js';
 import { createBackup, decryptBackup } from './backup.js';
 
 const args = process.argv.slice(2);
@@ -25,8 +25,9 @@ async function passphrase(confirm) {
 
 try {
   if (cmd === 'backup') {
-    const out = resolve(flag('--out') ?? 'backups');
+    const out = resolve(flag('--out') ?? join(dataDir(), 'backups'));
     mkdirSync(out, { recursive: true });
+    migrateLegacyDb();
     const db = openDb();
     const bytes = createBackup(db, await passphrase(true));
     db.close();

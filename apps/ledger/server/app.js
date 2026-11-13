@@ -14,6 +14,10 @@ import * as saved from './services/saved.js';
 import * as qbo from './services/qboImport.js';
 import { getFirm, saveFirm } from './services/firm.js';
 import { createBackup, lastBackup } from './backup.js';
+import { readFileSync } from 'node:fs';
+import { defaultDbPath } from './db.js';
+
+const VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 
 const PUBLIC = join(dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json' };
@@ -44,12 +48,12 @@ export function buildRouter(db) {
   r.put('/api/users/:id', (ctx) => auth.updateUser(db, id(ctx), ctx.body, ctx.user), { admin: true });
 
   // --- Meta ---
-  r.get('/api/meta', () => ({ account_types: ACCOUNT_TYPES, txn_types: txns.TXN_TYPES, reports: reports.REPORTS, periods: reports.PERIODS, gl_columns: reports.GL_COLUMNS, gl_default_columns: reports.GL_DEFAULT_COLUMNS }));
+  r.get('/api/meta', () => ({ version: VERSION, account_types: ACCOUNT_TYPES, txn_types: txns.TXN_TYPES, reports: reports.REPORTS, periods: reports.PERIODS, gl_columns: reports.GL_COLUMNS, gl_default_columns: reports.GL_DEFAULT_COLUMNS }));
 
   // --- Firm branding & backups ---
   r.get('/api/firm', () => getFirm(db));
   r.put('/api/firm', (ctx) => saveFirm(db, ctx.body, uid(ctx)), { admin: true });
-  r.get('/api/backup', () => ({ last_backup: lastBackup(db) }), { admin: true });
+  r.get('/api/backup', () => ({ last_backup: lastBackup(db), db_path: db.path ?? defaultDbPath() }), { admin: true });
   r.post('/api/backup', (ctx) => {
     const bytes = createBackup(db, ctx.body.passphrase);
     return { __raw: bytes, type: 'application/octet-stream', filename: `ledger-backup-${new Date().toISOString().slice(0, 10)}.twlbak` };

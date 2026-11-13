@@ -170,6 +170,7 @@ function renderShell(force = false) {
           <div class="new-menu" hidden>${raw(NEW_MENU.map(([g, items]) => html`<div class="new-col"><h4>${g}</h4>${raw(items.map(([t, l]) => html`<a href="${chref('new/' + t)}">${l}</a>`).join(''))}</div>`).join(''))}</div>
         </div>
         <nav>${raw(NAV.map((n) => html`<div class="nav-group"><a class="nav-link" data-nav="${n.href}" href="${chref(n.href)}"><span class="nav-icon" aria-hidden="true">${n.icon}</span>${n.label}</a>${n.children ? raw(html`<div class="nav-children">${raw(n.children.map(([h, l]) => html`<a data-nav="${h}" href="${chref(h)}">${l}</a>`).join(''))}</div>`) : ''}</div>`).join(''))}</nav>
+        <div class="app-version" title="Trendwise Ledger version">v${state.meta?.version ?? ''}</div>
       </aside>
       <div class="content">
         <header class="topbar">

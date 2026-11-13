@@ -1,6 +1,6 @@
 // Seeds a demo company with ~4 months of realistic activity. Safe to re-run: it creates a new company each time.
 import { randomBytes } from 'node:crypto';
-import { openDb } from './db.js';
+import { openDb, migrateLegacyDb } from './db.js';
 import { createUser, needsSetup } from './auth.js';
 import { createCompany, saveParty, saveItem, saveTaxRate } from './services/names.js';
 import { listAccounts } from './services/accounts.js';
@@ -8,6 +8,7 @@ import { createTransaction } from './services/transactions.js';
 import { importStatement, saveRule } from './services/banking.js';
 import { addDays, today } from './util.js';
 
+migrateLegacyDb();
 const db = openDb();
 let creds = null;
 if (needsSetup(db)) {

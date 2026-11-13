@@ -6,18 +6,26 @@ A double-entry bookkeeping application modeled on QuickBooks Online workflows, b
 
 ## Quick start
 
+**Windows:** double-click **`Start Ledger.bat`** in this folder. It stops any copy that's already running, starts the app and opens your browser. Run **`Create Desktop Shortcut.bat`** once to put a "Trendwise Ledger" icon on your desktop. Keep the black window open while you work; close it to stop the app.
+
+**Any system:**
 ```bash
 cd apps/ledger
 npm run seed:demo     # optional: creates an admin login + a demo company with 4 months of activity
 npm start             # http://127.0.0.1:3000
 ```
 
-Without the demo seed, the first visit asks you to create the administrator account.
+Requires Node.js 22.13 or newer (install the LTS from nodejs.org). Without the demo seed, the first visit asks you to create the administrator account. The app version is shown at the bottom of the left menu.
+
+### Where the books are stored
+
+In a **`TrendwiseLedger`** folder in your user folder (for example `C:\Users\you\TrendwiseLedger\ledger.db`), deliberately **outside** the app folder, so client data never syncs to OneDrive or goes into git with the code. Settings → Backup shows the exact path. Books from older versions (stored in `apps/ledger/data`) are copied there automatically the first time the new version starts. The old copy is left in place with a note, and you can delete it once you've checked everything.
 
 | Env var | Default | Purpose |
 |---|---|---|
 | `PORT` / `HOST` | `3000` / `127.0.0.1` | Listen address |
-| `LEDGER_DB` | `apps/ledger/data/ledger.db` | SQLite database path (back this file up) |
+| `LEDGER_DATA_DIR` | `~/TrendwiseLedger` | Folder for the database and command-line backups |
+| `LEDGER_DB` | `<data dir>/ledger.db` | Exact database file (overrides the folder) |
 | `NODE_ENV=production` | — | Adds `Secure` to the session cookie (serve behind HTTPS) |
 | `LEDGER_ADMIN_EMAIL` / `LEDGER_ADMIN_PASSWORD` | `admin@example.com` / random | Used by `seed:demo` only when no users exist |
 
@@ -67,7 +75,7 @@ Notes: the year-to-date income and expense balances on the trial balance post on
 ## Backups
 
 ```bash
-npm run backup                                      # prompts for a passphrase; writes ./backups/ledger-backup-<timestamp>.twlbak
+npm run backup                                      # prompts for a passphrase; writes ~/TrendwiseLedger/backups/ledger-backup-<timestamp>.twlbak
 npm run restore -- backups/<file>.twlbak --to restored.db
 LEDGER_DB=restored.db npm start                     # run from the restored copy
 ```
