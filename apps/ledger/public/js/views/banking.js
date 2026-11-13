@@ -1,4 +1,5 @@
 import { html, raw, esc, money, fmtDate, on, $, $$, options, field, toast, modal, dataTable, confirmDialog, readUploadFile, fmtStamp } from '../ui.js';
+import { partyOptions, guessPayee, wireQuickAdd } from './lists.js';
 
 const acctLabel = (a) => `${a.number ? a.number + ' ' : ''}${a.name}`;
 
@@ -26,7 +27,7 @@ export async function feed(ctx) {
         <td class="desc">${r.description}${r.rule_name ? raw(html`<br><small class="muted">Rule: ${r.rule_name}</small>`) : ''}</td>
         <td class="num">${r.amount < 0 ? money(-r.amount) : ''}</td>
         <td class="num">${r.amount > 0 ? money(r.amount) : ''}</td>
-        <td><select data-payee aria-label="Payee">${raw(options(payeeList, payeeSel, { blank: '', label: (p) => p.display_name }))}</select></td>
+        <td><select data-payee data-quick-add="${r.amount < 0 ? 'vendors' : 'customers'}" data-prefill="${guessPayee(r.description)}" aria-label="${r.amount < 0 ? 'Payee (vendor)' : 'Received from (customer)'}">${raw(partyOptions(payeeList, payeeSel, r.amount < 0 ? 'vendors' : 'customers'))}</select></td>
         <td>${best ? raw(html`<label class="match"><input type="radio" name="mode-${r.id}" value="match" checked> Match: <a href="${ctx.chref('txn/' + best.transaction_id)}">${best.type_label} ${best.number ?? ''}</a> <small>${fmtDate(best.date)}${best.payee ? ' · ' + esc(best.payee) : ''}</small></label><label class="match"><input type="radio" name="mode-${r.id}" value="add"> Categorize</label>`) : ''}
           <select data-cat aria-label="Category" ${best ? raw('hidden') : ''}>${raw(catOpts(r.suggested_account_id))}</select></td>
         <td class="nowrap"><button type="button" class="btn btn-small btn-primary" data-go>${best ? 'Match' : 'Add'}</button> <button type="button" class="link" data-exclude>Exclude</button> <button type="button" class="link" data-mkrule>Rule…</button></td></tr>`;
@@ -55,10 +56,19 @@ export async function feed(ctx) {
     const mode = tr.querySelector(`input[name="mode-${id}"]:checked`)?.value ?? 'add';
     const r = rows.find((x) => String(x.id) === id);
     if (mode === 'match') return ctx.capi.post(`/bank/feed/${id}/match`, { transaction_id: r.matches[0].transaction_id });
-    const payee = tr.querySelector('[data-payee]').value || null;
+    const pv = tr.querySelector('[data-payee]').value;
+    const payee = pv && pv !== '__new' ? pv : null;
     return ctx.capi.post(`/bank/feed/${id}/add`, { account_id: tr.querySelector('[data-cat]').value || null, ...(Number(tr.dataset.amount) < 0 ? { vendor_id: payee } : { customer_id: payee }) });
   };
 
+  // "＋ Add new" in the payee pickers; a vendor's default category fills an empty category.
+  wireQuickAdd(ctx, ctx.el, { onCreated: (c, table) => { (table === 'vendors' ? vendors : customers).push(c); } });
+  on(ctx.el, 'change', '[data-payee]', (e, sel) => {
+    if (sel.dataset.quickAdd !== 'vendors' || !sel.value || sel.value === '__new') return;
+    const v = vendors.find((x) => String(x.id) === sel.value);
+    const cat = sel.closest('tr').querySelector('[data-cat]');
+    if (v?.default_account_id && cat && !cat.value) cat.value = String(v.default_account_id);
+  });
   on(ctx.el, 'change', 'input[type=radio][name^=mode-]', (e, rb) => {
     const tr = rb.closest('tr');
     tr.querySelector('[data-cat]').hidden = rb.value === 'match';
@@ -181,25 +191,26 @@ function upload(ctx, feedAccts, acctId, done) {
 function editRule(ctx, r, accounts, vendors, customers) {
   const feedAccts = accounts.filter((a) => a.type === 'bank' || a.type === 'credit_card');
   const cats = accounts.filter((a) => !['accounts_receivable', 'accounts_payable'].includes(a.type));
-  return new Promise((resolve) => modal({
-    title: r.id ? 'Edit rule' : 'Create rule', wide: true,
+  return new Promise((resolve) => { const m = modal({
+    title: r.id ? 'Edit rule' : 'Create rule', wide: true, onClose: () => resolve(null),
     body: html`<div class="form-grid">
       ${raw(field('Rule name', html`<input name="name" value="${r.name ?? ''}">`))}
       ${raw(field('Apply to', html`<select name="direction">${raw(options([{ id: 'out', name: 'Money out' }, { id: 'in', name: 'Money in' }, { id: 'any', name: 'Both' }], r.direction ?? 'out'))}</select>`))}
       ${raw(field('Bank account', html`<select name="bank_account_id">${raw(options(feedAccts, r.bank_account_id, { blank: 'All accounts', label: acctLabel }))}</select>`))}
       ${raw(field('Description contains', html`<input name="match_text" required value="${r.match_text ?? ''}">`))}
       ${raw(field('Category', html`<select name="account_id" required>${raw(options(cats, r.account_id, { blank: 'Select category', label: acctLabel, group: (a) => a.type_label }))}</select>`))}
-      ${raw(field('Payee (vendor)', html`<select name="vendor_id">${raw(options(vendors, r.vendor_id, { blank: '', label: (v) => v.display_name }))}</select>`))}
-      ${raw(field('Customer', html`<select name="customer_id">${raw(options(customers, r.customer_id, { blank: '', label: (v) => v.display_name }))}</select>`))}
+      ${raw(field('Payee (vendor)', html`<select name="vendor_id" data-quick-add="vendors" data-prefill="${r.vendor_id ? '' : guessPayee(r.match_text ?? '')}">${raw(partyOptions(vendors, r.vendor_id, 'vendors'))}</select>`))}
+      ${raw(field('Customer', html`<select name="customer_id" data-quick-add="customers">${raw(partyOptions(customers, r.customer_id, 'customers'))}</select>`))}
       ${raw(field('Priority', html`<input name="priority" type="number" value="${r.priority ?? 100}">`, { hint: 'Lower runs first' }))}
       <label class="check span-2"><input type="checkbox" name="auto_add" value="1" ${r.auto_add ? raw('checked') : ''}> Automatically add matching transactions (skip review)</label>
     </div>`,
     onSubmit: async (d) => {
+      for (const k of ['vendor_id', 'customer_id']) if (d[k] === '__new') d[k] = '';
       const body = { ...d, auto_add: !!d.auto_add };
       const saved = r.id ? await ctx.capi.put(`/bank/rules/${r.id}`, body) : await ctx.capi.post('/bank/rules', body);
       toast('Rule saved'); resolve(saved);
     },
-  }));
+  }); wireQuickAdd(ctx, m.el); });
 }
 
 export async function rules(ctx) {
