@@ -422,3 +422,7 @@ details summary { cursor: pointer; }
 
 .sidebar { display: flex; flex-direction: column; }
 .app-version { margin-top: auto; padding: 1rem .6rem 0; font-size: .75rem; color: var(--nav-text); opacity: .6; }
+
+.restore-box { margin-top: 1.4rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+.restore-box summary { cursor: pointer; }
+.restore-box form { margin-top: .8rem; }

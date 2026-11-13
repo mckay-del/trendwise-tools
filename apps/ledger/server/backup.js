@@ -3,7 +3,8 @@
 // Key = scrypt(passphrase, salt). Without the passphrase the file is unreadable — there is no recovery.
 import { scryptSync, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
 import { gzipSync, gunzipSync } from 'node:zlib';
-import { readFileSync, rmSync, mkdtempSync } from 'node:fs';
+import { readFileSync, rmSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { bad } from './util.js';
@@ -52,4 +53,23 @@ export function decryptBackup(buf, passphrase) {
 
 export function lastBackup(db) {
   return db.get("SELECT value FROM schema_meta WHERE key = 'last_backup'")?.value ?? null;
+}
+
+/**
+ * Check that decrypted bytes are a healthy Trendwise Ledger database. Returns counts for the confirmation message.
+ */
+export function inspectImage(image) {
+  const dir = mkdtempSync(join(tmpdir(), 'ledger-restore-'));
+  const file = join(dir, 'check.db');
+  try {
+    writeFileSync(file, image);
+    const c = new DatabaseSync(file);
+    try {
+      const ok = Object.values(c.prepare('PRAGMA integrity_check').get())[0];
+      if (ok !== 'ok') throw bad('The backup file is damaged (integrity check failed)');
+      const has = (t) => c.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(t);
+      if (!has('users') || !has('companies')) throw bad('That file is not a Trendwise Ledger backup');
+      return { users: c.prepare('SELECT COUNT(*) AS n FROM users').get().n, companies: c.prepare('SELECT COUNT(*) AS n FROM companies').get().n };
+    } finally { c.close(); }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 }

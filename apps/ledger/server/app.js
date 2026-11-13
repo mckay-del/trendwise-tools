@@ -13,7 +13,7 @@ import { listAudit } from './services/audit.js';
 import * as saved from './services/saved.js';
 import * as qbo from './services/qboImport.js';
 import { getFirm, saveFirm } from './services/firm.js';
-import { createBackup, lastBackup } from './backup.js';
+import { createBackup, lastBackup, decryptBackup, inspectImage } from './backup.js';
 import { readFileSync } from 'node:fs';
 import { defaultDbPath } from './db.js';
 
@@ -21,7 +21,7 @@ const VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.u
 
 const PUBLIC = join(dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.json': 'application/json' };
-const MAX_BODY = 10 * 1024 * 1024;
+const MAX_BODY = 25 * 1024 * 1024;
 const COOKIE = 'ledger_session';
 
 export function buildRouter(db) {
@@ -38,6 +38,17 @@ export function buildRouter(db) {
     const s = auth.login(db, { email: user.email, password: ctx.body.password }, ctx.ip);
     ctx.setSession(s);
     return { user };
+  }, { public: true });
+  // First run only: load an encrypted backup (e.g. when moving to a new computer or server).
+  r.post('/api/auth/restore', (ctx) => {
+    if (!auth.needsSetup(db)) throw forbidden('Restore is only available on a new, empty installation');
+    if (!ctx.body.data_base64) throw bad('Choose the backup file');
+    const image = decryptBackup(Buffer.from(String(ctx.body.data_base64), 'base64'), String(ctx.body.passphrase ?? ''));
+    const info = inspectImage(image);
+    if (!info.users) throw bad('That backup has no user logins in it');
+    db.replaceWith(image);
+    db.run('DELETE FROM sessions'); // sign-ins from the old computer don't carry over
+    return { ok: true, ...info };
   }, { public: true });
   r.post('/api/auth/login', (ctx) => { const s = auth.login(db, ctx.body, ctx.ip); ctx.setSession(s); return { user: s.user }; }, { public: true });
   r.post('/api/auth/logout', (ctx) => { auth.logout(db, ctx.token); ctx.clearSession(); return { ok: true }; }, { public: true });

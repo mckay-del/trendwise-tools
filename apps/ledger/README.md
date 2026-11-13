@@ -17,6 +17,10 @@ npm start             # http://127.0.0.1:3000
 
 Requires Node.js 22.13 or newer (install the LTS from nodejs.org). Without the demo seed, the first visit asks you to create the administrator account. The app version is shown at the bottom of the left menu.
 
+### Running it on a cloud server (no computer needs to stay on)
+
+See **[SERVER-SETUP.md](SERVER-SETUP.md)**. One command sets up a fresh Ubuntu server (for example a $6/month DigitalOcean Droplet): it runs as a locked-down service, takes nightly encrypted backups, installs security updates automatically, blocks the public internet, and is reachable only through your Tailscale network. Move your books over with **Restore a backup** on the first-run screen.
+
 ### Using the same books from another computer
 
 See **[REMOTE-ACCESS.md](REMOTE-ACCESS.md)**. One computer keeps the books, and your other computers open them in a browser over Tailscale (private and encrypted). Helpers: `Share With My Other Computers.bat`, `Stop Sharing.bat`, `Start Automatically With Windows.bat`. If two people edit the same transaction at once, the second save is refused with a "reload to see their changes" message instead of overwriting.

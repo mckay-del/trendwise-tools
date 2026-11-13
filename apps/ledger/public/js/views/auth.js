@@ -37,7 +37,29 @@ export async function setup(ctx) {
     ${raw(field('Email', '<input name="email" type="email" required autocomplete="username">'))}
     ${raw(field('Password', '<input name="password" type="password" minlength="10" required autocomplete="new-password">', { hint: 'At least 10 characters' }))}
     <div class="form-error" hidden></div>
-    <button class="btn btn-primary btn-block">Create account</button></form>`);
+    <button class="btn btn-primary btn-block">Create account</button></form>
+    <details class="restore-box"><summary><b>Moving your books from another computer?</b> Restore a backup instead</summary>
+      <p class="muted">On the old computer, open Settings → Backup → <b>Download encrypted backup</b>. Choose that file here with the passphrase you used. All companies and logins come across; sign in afterwards with your usual email and password.</p>
+      <form class="stack" data-form="restore">
+        ${raw(field('Backup file (.twlbak)', '<input type="file" name="file" accept=".twlbak" required>'))}
+        ${raw(field('Backup passphrase', '<input type="password" name="passphrase" required autocomplete="off">'))}
+        <div class="form-error" hidden></div>
+        <button class="btn btn-block">Restore backup</button>
+      </form></details>`);
+  on(ctx.el, 'submit', '[data-form=restore]', async (e, f) => {
+    e.preventDefault();
+    const box = f.querySelector('.form-error'); box.hidden = true;
+    const btn = f.querySelector('button'); btn.disabled = true; btn.textContent = 'Restoring…';
+    try {
+      const file = f.file.files[0];
+      if (!file) throw new Error('Choose the backup file');
+      const buf = new Uint8Array(await file.arrayBuffer());
+      let bin = ''; for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+      const r = await api.post('/api/auth/restore', { data_base64: btoa(bin), passphrase: f.passphrase.value });
+      toast(`Restored ${r.companies} compan${r.companies === 1 ? 'y' : 'ies'} and ${r.users} login${r.users === 1 ? '' : 's'}. Sign in with your usual email and password.`);
+      ctx.navigate('login');
+    } catch (err) { box.textContent = err.message; box.hidden = false; btn.disabled = false; btn.textContent = 'Restore backup'; }
+  });
   on(ctx.el, 'submit', '[data-form=setup]', async (e, f) => {
     e.preventDefault();
     try {

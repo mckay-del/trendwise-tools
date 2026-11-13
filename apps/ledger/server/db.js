@@ -1,5 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync, mkdirSync, existsSync, writeFileSync } from 'node:fs';
+import { readFileSync, mkdirSync, existsSync, writeFileSync, rmSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,11 +13,22 @@ export class Db {
   constructor(path) {
     if (path !== ':memory:') mkdirSync(dirname(path), { recursive: true });
     this.path = path;
-    this.raw = new DatabaseSync(path);
+    this.open();
+  }
+  open() {
+    this.raw = new DatabaseSync(this.path);
     this.raw.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
     this.cache = new Map();
     this.depth = 0;
-    this.raw.exec(readFileSync(join(here, 'schema.sql'), 'utf8'));
+    this.raw.exec(readFileSync(join(here, 'schema.sql'), 'utf8')); // also brings older backups up to the current schema
+  }
+  /** Replace the whole database with a SQLite image (used by restore-from-backup). */
+  replaceWith(image) {
+    if (this.path === ':memory:') throw new Error('Cannot replace an in-memory database');
+    this.raw.close();
+    for (const ext of ['-wal', '-shm']) rmSync(this.path + ext, { force: true });
+    writeFileSync(this.path, image, { mode: 0o600 });
+    this.open();
   }
   stmt(sql) {
     let s = this.cache.get(sql);
