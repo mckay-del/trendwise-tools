@@ -65,7 +65,7 @@ export function toast(msg, kind = 'ok') {
 
 // --- Modals ---------------------------------------------------------------
 /** Open a modal. `body` is HTML. Returns { el, close }. onSubmit(formData, el) may return false to keep it open. */
-export function modal({ title, body, submitLabel = 'Save', onSubmit, wide = false, cancelLabel = 'Cancel', danger = false }) {
+export function modal({ title, body, submitLabel = 'Save', onSubmit, onClose, wide = false, cancelLabel = 'Cancel', danger = false }) {
   const prev = document.activeElement;
   const wrap = document.createElement('div');
   wrap.className = 'modal-backdrop';
@@ -77,8 +77,8 @@ export function modal({ title, body, submitLabel = 'Save', onSubmit, wide = fals
   </form>`;
   document.body.append(wrap);
   const form = wrap.querySelector('form');
-  const close = () => { wrap.remove(); document.removeEventListener('keydown', onKey); prev?.focus?.(); };
-  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  const close = () => { wrap.remove(); document.removeEventListener('keydown', onKey); prev?.focus?.(); onClose?.(); };
+  const onKey = (e) => { if (e.key === 'Escape' && [...document.querySelectorAll('.modal-backdrop')].at(-1) === wrap) close(); };
   document.addEventListener('keydown', onKey);
   wrap.addEventListener('mousedown', (e) => { if (e.target === wrap) close(); });
   on(wrap, 'click', '[data-close]', close);

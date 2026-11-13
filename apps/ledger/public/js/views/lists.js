@@ -72,10 +72,12 @@ function partyForm(table, p = {}, accounts = []) {
   </div>`;
 }
 
+/** Open the customer/vendor form. Resolves with the saved record, or null if cancelled. */
 export async function editParty(ctx, table, p = {}) {
   const accounts = table === 'vendors' ? await ctx.capi.accounts() : [];
   return new Promise((resolve) => {
     modal({
+      onClose: () => resolve(null),
       title: p.id ? `Edit ${p.display_name}` : `New ${table === 'customers' ? 'customer' : 'vendor'}`, body: partyForm(table, p, accounts), wide: true,
       onSubmit: async (data) => {
         const body = { ...data, taxable: data.taxable === '1', is_1099: data.is_1099 === '1' };
@@ -84,6 +86,44 @@ export async function editParty(ctx, table, p = {}) {
         resolve(r);
       },
     });
+  });
+}
+
+const singular = (table) => (table === 'customers' ? 'customer' : 'vendor');
+
+/** <option>s for a customer/vendor picker with "＋ Add new …" at the top. */
+export function partyOptions(list, sel, table, blank = '') {
+  return options(list, sel, { blank, label: (p) => p.display_name }).replace(/(<option value="">[^<]*<\/option>)?/, (m) => `${m}${html`<option value="__new">＋ Add new ${singular(table)}</option>`}`);
+}
+
+/** Turn a bank description into a likely payee name: "SQ *BLUE MOON CAFE #123 LAS VEGAS" → "Blue Moon Cafe". */
+export function guessPayee(desc = '') {
+  const words = String(desc).replace(/^(sq|tst|pp|paypal|pos|ach|dbt|debit|purchase|checkcard)\s*\*?\s*/i, '').replace(/[#*].*$/, '').replace(/\d{3,}.*$/, '')
+    .split(/\s+/).filter((w) => w && !/^(las|vegas|nv|ca|www|com|inc|llc|co)$/i.test(w)).slice(0, 3);
+  return words.map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+/**
+ * Make every <select data-quick-add="vendors|customers"> inside root offer "＋ Add new".
+ * Choosing it opens the form (pre-filled from data-prefill); on save every picker of that kind
+ * is refreshed and this one selects the new record; on cancel the previous choice comes back.
+ */
+export function wireQuickAdd(ctx, root, { onCreated } = {}) {
+  on(root, 'focusin', 'select[data-quick-add]', (e, sel) => { if (sel.value !== '__new') sel.dataset.prev = sel.value; });
+  on(root, 'change', 'select[data-quick-add]', async (e, sel) => {
+    if (sel.value !== '__new') { sel.dataset.prev = sel.value; return; }
+    const table = sel.dataset.quickAdd;
+    const created = await editParty(ctx, table, sel.dataset.prefill ? { display_name: sel.dataset.prefill } : {});
+    if (!created) { sel.value = sel.dataset.prev ?? ''; return; }
+    const list = table === 'customers' ? await ctx.capi.customers() : await ctx.capi.vendors();
+    root.querySelectorAll(`select[data-quick-add="${table}"]`).forEach((other) => {
+      const keep = other === sel ? String(created.id) : other.value;
+      other.innerHTML = partyOptions(list, keep, table, other.dataset.blank ?? '');
+      other.value = keep;
+    });
+    sel.dataset.prev = String(created.id);
+    onCreated?.(created, table, sel, list);
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
   });
 }
 

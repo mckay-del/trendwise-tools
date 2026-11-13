@@ -1,5 +1,5 @@
 import { html, raw, esc, money, num, parseMoney, fmtDate, today, addDays, on, $, $$, options, field, toast, modal, confirmDialog, badge, dataTable } from '../ui.js';
-import { editParty } from './lists.js';
+import { editParty, partyOptions as sharedPartyOptions, wireQuickAdd } from './lists.js';
 
 const ITEM_TYPES = ['invoice', 'sales_receipt', 'credit_memo'];
 const CATEGORY_TYPES = ['bill', 'vendor_credit', 'expense', 'check'];
@@ -17,7 +17,7 @@ const BACK = { invoice: 'invoices', sales_receipt: 'sales', credit_memo: 'sales'
 
 const acctLabel = (a) => `${a.number ? a.number + ' ' : ''}${a.name}`;
 const acctOptions = (accounts, sel, types, blank = 'Choose an account') => options(types ? accounts.filter((a) => types.includes(a.type)) : accounts, sel, { blank, label: acctLabel, group: (a) => a.type_label });
-const partyOptions = (list, sel, label) => options(list, sel, { blank: `Choose a ${label}`, label: (p) => p.display_name }) + html`<option value="__new">＋ Add new ${label}</option>`;
+const partyOptions = (list, sel, label) => sharedPartyOptions(list, sel, label === 'customer' ? 'customers' : 'vendors', `Choose a ${label}`);
 
 export async function view(ctx) {
   const capi = ctx.capi;
@@ -148,7 +148,7 @@ function lineRow(S, l = {}) {
       <td><select name="account_id" aria-label="Category">${raw(acctOptions(cats, l.account_id, null, 'Category'))}</select></td>
       <td><input name="description" value="${l.description ?? ''}" aria-label="Description"></td>
       <td><input name="amount" class="num" inputmode="decimal" value="${l.amount ? num(l.amount) : ''}" aria-label="Amount"></td>
-      <td><select name="customer_id" aria-label="Customer">${raw(options(L.customers, l.customer_id, { blank: '', label: (c) => c.display_name }))}</select></td>
+      <td><select name="customer_id" aria-label="Customer" data-quick-add="customers">${raw(sharedPartyOptions(L.customers, l.customer_id, 'customers'))}</select></td>
       <td><button type="button" class="icon-btn" data-action="del-line" aria-label="Delete line">🗑</button></td></tr>`;
   }
   if (type === 'journal_entry') {
@@ -167,7 +167,7 @@ function lineRow(S, l = {}) {
     const from = L.accounts.filter((a) => a.system_key !== 'UNDEPOSITED' && a.type !== 'accounts_payable');
     return html`<tr data-line>
       <td class="drag">⋮</td>
-      <td><select name="customer_id" aria-label="Received from">${raw(options(L.customers, l.customer_id, { blank: '', label: (c) => c.display_name }))}</select></td>
+      <td><select name="customer_id" aria-label="Received from" data-quick-add="customers">${raw(sharedPartyOptions(L.customers, l.customer_id, 'customers'))}</select></td>
       <td><select name="account_id" aria-label="Account">${raw(acctOptions(from, l.account_id, null, 'Account'))}</select></td>
       <td><input name="description" value="${l.description ?? ''}" aria-label="Description"></td>
       <td><input name="amount" class="num" inputmode="decimal" value="${l.amount ? num(l.amount) : ''}" aria-label="Amount"></td>
@@ -202,9 +202,9 @@ function readLines(S) {
   return $$('[data-section=lines] tr[data-line]', S.form).map((tr) => {
     const v = (n) => tr.querySelector(`[name=${n}]`)?.value ?? '';
     if (ITEM_TYPES.includes(S.type)) return { item_id: v('item_id') || null, description: v('description'), qty: v('qty'), rate: v('rate'), amount: v('amount').replace(/[$,]/g, ''), taxable: tr.querySelector('[name=taxable]').checked };
-    if (CATEGORY_TYPES.includes(S.type)) return { account_id: v('account_id') || null, description: v('description'), amount: v('amount').replace(/[$,]/g, ''), customer_id: v('customer_id') || null };
+    if (CATEGORY_TYPES.includes(S.type)) return { account_id: v('account_id') || null, description: v('description'), amount: v('amount').replace(/[$,]/g, ''), customer_id: (v('customer_id') === '__new' ? '' : v('customer_id')) || null };
     if (S.type === 'journal_entry') { const nm = v('name'); return { account_id: v('account_id') || null, debit: v('debit').replace(/[$,]/g, ''), credit: v('credit').replace(/[$,]/g, ''), description: v('description'), customer_id: nm.startsWith('c:') ? nm.slice(2) : null, vendor_id: nm.startsWith('v:') ? nm.slice(2) : null }; }
-    if (S.type === 'deposit') return { account_id: v('account_id') || null, customer_id: v('customer_id') || null, description: v('description'), amount: v('amount').replace(/[$,]/g, '') };
+    if (S.type === 'deposit') return { account_id: v('account_id') || null, customer_id: (v('customer_id') === '__new' ? '' : v('customer_id')) || null, description: v('description'), amount: v('amount').replace(/[$,]/g, '') };
     return {};
   });
 }
@@ -316,14 +316,19 @@ function wire(S) {
     recalc(S);
   });
 
+  on(form, 'focusin', '[data-party]', (e, sel) => { if (sel.value !== '__new') sel.dataset.prev = sel.value; });
+  // Quick-add on line-level customer pickers (billable expenses, deposit "received from")
+  wireQuickAdd(ctx, form, { onCreated: (c, table) => { if (table === 'customers') L.customers.push(c); else L.vendors.push(c); } });
   // Quick-add customer/vendor, refresh dependent sections
   on(form, 'change', '[data-party]', async (e, sel) => {
     const table = sel.dataset.party;
     if (sel.value === '__new') {
       const created = await editParty(ctx, table, {});
+      if (!created) { sel.value = sel.dataset.prev ?? ''; return; }
       const list = table === 'customers' ? (L.customers = await ctx.capi.customers()) : (L.vendors = await ctx.capi.vendors());
       sel.innerHTML = partyOptions(list, created.id, table === 'customers' ? 'customer' : 'vendor');
     }
+    sel.dataset.prev = sel.value;
     const p = (table === 'customers' ? L.customers : L.vendors).find((x) => String(x.id) === sel.value);
     if (p && form.billing_address && table === 'customers') form.billing_address.value = p.billing_address ?? '';
     if (p && form.due_date && p.terms_days != null) form.due_date.value = addDays(form.date.value, p.terms_days);
