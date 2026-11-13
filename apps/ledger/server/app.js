@@ -11,6 +11,7 @@ import * as bank from './services/banking.js';
 import * as reports from './services/reports.js';
 import { listAudit } from './services/audit.js';
 import * as saved from './services/saved.js';
+import * as qbo from './services/qboImport.js';
 import { getFirm, saveFirm } from './services/firm.js';
 import { createBackup, lastBackup } from './backup.js';
 
@@ -98,6 +99,17 @@ export function buildRouter(db) {
 
   // --- Banking ---
   r.post('/api/c/:cid/bank/import', (ctx) => bank.importStatement(db, cid(ctx), ctx.body, uid(ctx)));
+  r.post('/api/c/:cid/bank/import/preview', (ctx) => bank.previewStatement(db, cid(ctx), ctx.body));
+  r.get('/api/c/:cid/bank/imports', (ctx) => bank.importHistory(db, cid(ctx), Number(ctx.query.account_id)));
+  r.delete('/api/c/:cid/bank/import-settings/:id', (ctx) => bank.forgetImportSettings(db, cid(ctx), id(ctx)));
+
+  // --- QuickBooks import ---
+  r.post('/api/c/:cid/import/accounts', (ctx) => qbo.importAccounts(db, cid(ctx), ctx.body, uid(ctx)));
+  r.post('/api/c/:cid/import/customers', (ctx) => qbo.importParties(db, cid(ctx), 'customers', ctx.body, uid(ctx)));
+  r.post('/api/c/:cid/import/vendors', (ctx) => qbo.importParties(db, cid(ctx), 'vendors', ctx.body, uid(ctx)));
+  r.post('/api/c/:cid/import/opening', (ctx) => qbo.importOpening(db, cid(ctx), ctx.body, uid(ctx)), { closeBooks: true });
+  r.get('/api/c/:cid/imports', (ctx) => qbo.listImports(db, cid(ctx)));
+  r.post('/api/c/:cid/imports/:id/undo', (ctx) => qbo.undoImport(db, cid(ctx), id(ctx), uid(ctx)), { closeBooks: true });
   r.get('/api/c/:cid/bank/feed', (ctx) => bank.listFeed(db, cid(ctx), ctx.query));
   r.put('/api/c/:cid/bank/feed/:id', (ctx) => bank.updateFeedSuggestion(db, cid(ctx), id(ctx), ctx.body));
   r.post('/api/c/:cid/bank/feed/:id/add', (ctx) => bank.addFromFeed(db, cid(ctx), id(ctx), ctx.body, uid(ctx)));

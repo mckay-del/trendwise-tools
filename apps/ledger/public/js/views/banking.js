@@ -1,4 +1,4 @@
-import { html, raw, esc, money, fmtDate, on, $, $$, options, field, toast, modal, dataTable, confirmDialog } from '../ui.js';
+import { html, raw, esc, money, fmtDate, on, $, $$, options, field, toast, modal, dataTable, confirmDialog, readUploadFile, fmtStamp } from '../ui.js';
 
 const acctLabel = (a) => `${a.number ? a.number + ' ' : ''}${a.name}`;
 
@@ -42,7 +42,7 @@ export async function feed(ctx) {
 
   ctx.el.innerHTML = html`<div class="page">
     <div class="page-head"><h1>Bank transactions</h1><div class="btn-row"><a class="btn" href="${ctx.chref('banking/rules')}">Rules</a><a class="btn" href="${ctx.chref('reconcile/' + acctId)}">Reconcile</a><button class="btn btn-primary" data-action="upload">Upload transactions</button></div></div>
-    <div class="acct-tiles">${raw(feedAccts.map((a) => html`<a class="acct-tile ${a.id === acctId ? 'active' : ''}" href="${ctx.chref('banking')}?account=${a.id}"><strong>${a.name}</strong><span class="muted">In books</span><b>${money(a.balance)}</b>${counts[a.id]?.to_review ? raw(html`<span class="badge badge-warn">${counts[a.id].to_review} to review</span>`) : ''}</a>`).join(''))}</div>
+    <div class="acct-tiles">${raw(feedAccts.map((a) => html`<a class="acct-tile ${a.id === acctId ? 'active' : ''}" href="${ctx.chref('banking')}?account=${a.id}"><strong>${a.name}</strong><span class="muted">In books</span><b>${money(a.balance)}</b><small class="muted">${counts[a.id]?.data_through ? `Bank data through ${fmtDate(counts[a.id].data_through)}` : 'No bank data yet'}${counts[a.id]?.last_import_at ? ` · imported ${fmtStamp(counts[a.id].last_import_at)}` : ''}</small>${counts[a.id]?.to_review ? raw(html`<span class="badge badge-warn">${counts[a.id].to_review} to review</span>`) : ''}</a>`).join(''))}</div>
     <div class="tabs" role="tablist">${raw([['review', 'For review'], ['done', 'Categorized'], ['excluded', 'Excluded']].map(([k, l]) => html`<a role="tab" aria-selected="${k === tab}" class="${k === tab ? 'active' : ''}" href="${ctx.chref('banking')}?account=${acctId}&tab=${k}">${l}</a>`).join(''))}</div>
     ${tab === 'review' && rows.length ? raw('<div class="bulk btn-row"><button class="btn btn-small" data-bulk="accept">Accept selected</button><button class="btn btn-small" data-bulk="exclude">Exclude selected</button><button class="btn btn-small btn-ghost" data-action="apply-rules">Re-run rules</button></div>') : ''}
     ${raw(tab === 'review' ? reviewTable() : doneTable())}
@@ -97,29 +97,85 @@ export async function feed(ctx) {
 }
 
 function upload(ctx, feedAccts, acctId, done) {
+  let file = null, preview = null;
   const m = modal({
-    title: 'Upload bank transactions', submitLabel: 'Upload',
+    title: 'Upload bank transactions', submitLabel: 'Import', wide: true,
     body: html`<div class="stack">
-      ${raw(field('Account', html`<select name="account_id">${raw(options(feedAccts, acctId, { label: acctLabel }))}</select>`))}
-      ${raw(field('File (CSV, QFX or OFX)', '<input type="file" name="file" accept=".csv,.qfx,.ofx,text/csv" required>', { hint: 'CSV needs Date, Description and Amount (or Debit/Credit) columns.' }))}
-      <label class="check"><input type="checkbox" name="invert" value="1"> Amounts are reversed (charges shown as positive — common on credit card exports)</label>
-      <div data-preview class="muted"></div></div>`,
+      <div class="form-grid">
+        ${raw(field('Account', html`<select name="account_id">${raw(options(feedAccts, acctId, { label: acctLabel }))}</select>`))}
+        ${raw(field('File from your bank', '<input type="file" name="file" accept=".csv,.qfx,.ofx,.qbo,.xlsx,text/csv" required>', { hint: 'QFX/OFX (“Quicken” or “Web Connect”), CSV, or Excel' }))}
+      </div>
+      <div data-last class="banner banner-info" hidden></div>
+      <div data-layout></div>
+      <div data-result></div>
+    </div>`,
     onSubmit: async (d, form) => {
-      const file = form.file.files[0];
       if (!file) throw new Error('Choose a file');
-      const content = await file.text();
-      const r = await ctx.capi.post('/bank/import', { account_id: d.account_id, content, invert: !!d.invert, format: /\.(qfx|ofx)$/i.test(file.name) ? 'ofx' : 'csv' });
+      if (preview?.error) throw new Error(preview.error);
+      const r = await ctx.capi.post('/bank/import', { account_id: d.account_id, ...file, layout: currentLayout(form), remember: !!form.remember?.checked });
       toast(`${r.imported} imported${r.duplicates ? `, ${r.duplicates} duplicates skipped` : ''}${r.auto_added ? `, ${r.auto_added} auto-added by rules` : ''}`);
       ctx.navigate(ctx.cpath('banking'), { account: d.account_id });
       done();
     },
   });
-  m.el.file.addEventListener('change', async () => {
-    const f = m.el.file.files[0];
-    if (!f) return;
-    const text = await f.text();
-    m.el.querySelector('[data-preview]').textContent = `${text.split(/\r?\n/).filter(Boolean).length - 1} rows · first line: ${text.split(/\r?\n/)[0].slice(0, 120)}`;
-  });
+  const form = m.el;
+  const lastBox = form.querySelector('[data-last]');
+
+  const showLast = (li) => {
+    lastBox.hidden = !li;
+    if (li) lastBox.innerHTML = html`Last import: <b>${fmtStamp(li.at)}</b>${li.file_name ? ` (${li.file_name})` : ''} with data through <b>${fmtDate(li.last_date)}</b>. Download from <b>${fmtDate(li.last_date)}</b> onward — overlapping days are skipped automatically.`;
+  };
+  const loadLast = async () => { const h = await ctx.capi.get('/bank/imports', { account_id: form.account_id.value }); showLast(h[0] ?? null); };
+  loadLast();
+
+  const currentLayout = (f) => {
+    const box = f.querySelector('[data-layout] .layout');
+    if (!box) return undefined;
+    const v = (n) => f[n]?.value;
+    return { header_row: v('header_row'), mode: f.querySelector('[name=mode]:checked')?.value, date_col: v('date_col'), description_col: v('description_col'), amount_col: v('amount_col'), debit_col: v('debit_col'), credit_col: v('credit_col'), invert: f.invert?.checked ? 1 : 0 };
+  };
+
+  const render = () => {
+    const p = preview;
+    const result = form.querySelector('[data-result]');
+    const layoutHost = form.querySelector('[data-layout]');
+    if (!p) { layoutHost.innerHTML = ''; result.innerHTML = ''; return; }
+    if (p.layout) {
+      const L = p.layout;
+      const colOpts = (sel) => options(L.headers.map((h, i) => ({ id: i, name: h || `Column ${i + 1}` })), sel >= 0 ? sel : '', { blank: '— none —' });
+      const rowOpts = options(p.raw_sample.map((r, i) => ({ id: i, name: `Row ${i + 1}: ${r.filter(Boolean).slice(0, 4).join(' | ').slice(0, 70)}` })), L.header_row);
+      layoutHost.innerHTML = html`<fieldset class="layout"><legend>Columns ${p.saved_layout ? raw('<span class="badge badge-ok">remembered for this account</span>') : ''}</legend>
+        <div class="form-grid cols-4">
+          ${raw(field('Header row', html`<select name="header_row" data-relayout>${raw(rowOpts)}</select>`, { cls: 'span-2' }))}
+          ${raw(field('Date', html`<select name="date_col" data-relayout>${raw(colOpts(L.date_col))}</select>`))}
+          ${raw(field('Description', html`<select name="description_col" data-relayout>${raw(colOpts(L.description_col))}</select>`))}
+        </div>
+        <div class="inline-checks"><label class="check"><input type="radio" name="mode" value="single" data-relayout ${L.mode === 'single' ? raw('checked') : ''}> One amount column</label>
+          <label class="check"><input type="radio" name="mode" value="split" data-relayout ${L.mode === 'split' ? raw('checked') : ''}> Separate money-out / money-in columns</label></div>
+        <div class="form-grid cols-4">
+          ${L.mode === 'single' ? raw(field('Amount', html`<select name="amount_col" data-relayout>${raw(colOpts(L.amount_col))}</select>`))
+            : raw(html`${raw(field('Money out (debit)', html`<select name="debit_col" data-relayout>${raw(colOpts(L.debit_col))}</select>`))}${raw(field('Money in (credit)', html`<select name="credit_col" data-relayout>${raw(colOpts(L.credit_col))}</select>`))}`)}
+          <label class="check span-2"><input type="checkbox" name="invert" value="1" data-relayout ${L.invert ? raw('checked') : ''}> Flip signs (charges show as positive)</label>
+        </div>
+        <label class="check"><input type="checkbox" name="remember" checked> Remember these columns for this account</label>
+      </fieldset>`;
+    } else layoutHost.innerHTML = html`<p class="muted">${p.format.toUpperCase()} file — columns are read automatically.</p>`;
+    result.innerHTML = p.error ? html`<div class="form-error">${p.error}</div>` : html`
+      <div class="stat-strip"><div><small>Transactions</small><b>${p.count}</b></div><div><small>Dates</small><b>${fmtDate(p.first_date)} – ${fmtDate(p.last_date)}</b></div><div><small>Money in / out</small><b>${money(p.money_in)} / ${money(p.money_out)}</b></div><div class="${p.duplicates ? '' : ''}"><small>Already imported</small><b>${p.duplicates}</b></div></div>
+      ${raw(dataTable(p.sample, [{ key: 'date', label: 'Date', type: 'date' }, { key: 'description', label: 'Description' }, { key: 'amount', label: 'Amount', type: 'money' }]))}
+      <small class="muted">Check the first rows: money you spent should be negative, deposits positive. If not, tick “Flip signs”.</small>`;
+  };
+
+  const refresh = async (withLayout) => {
+    if (!file) return;
+    try {
+      preview = await ctx.capi.post('/bank/import/preview', { account_id: form.account_id.value, ...file, ...(withLayout ? { layout: currentLayout(form) } : {}) });
+    } catch (e) { preview = { error: e.message }; }
+    render();
+  };
+  form.file.addEventListener('change', async () => { file = await readUploadFile(form.file.files[0]).catch((e) => { toast(e.message, 'error'); return null; }); refresh(false); });
+  form.account_id.addEventListener('change', () => { loadLast(); refresh(false); });
+  on(form, 'change', '[data-relayout]', () => refresh(true));
 }
 
 function editRule(ctx, r, accounts, vendors, customers) {

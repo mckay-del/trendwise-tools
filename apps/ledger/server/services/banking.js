@@ -3,84 +3,97 @@ import { bad, notFound, toCents, requireDate, str, intOrNull, fmtMoney, daysBetw
 import { getAccount, signed, ACCOUNT_TYPES } from './accounts.js';
 import { createTransaction, deleteTransaction, TXN_TYPES } from './transactions.js';
 import { audit } from './audit.js';
+import { parseCsv, readUpload, findHeader, toIsoDate } from './tabular.js';
 
 const FEED_ACCOUNT_TYPES = ['bank', 'credit_card'];
 
 // ---------------------------------------------------------------------------
 // Parsing
 
-export function parseCsv(text) {
-  const rows = [];
-  let row = [], cell = '', q = false;
-  const s = text.replace(/^﻿/, '');
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
-    if (q) {
-      if (ch === '"' && s[i + 1] === '"') { cell += '"'; i++; }
-      else if (ch === '"') q = false;
-      else cell += ch;
-    } else if (ch === '"') q = true;
-    else if (ch === ',') { row.push(cell); cell = ''; }
-    else if (ch === '\n' || ch === '\r') {
-      if (ch === '\r' && s[i + 1] === '\n') i++;
-      row.push(cell); cell = '';
-      if (row.some((c) => c.trim() !== '')) rows.push(row);
-      row = [];
-    } else cell += ch;
-  }
-  row.push(cell);
-  if (row.some((c) => c.trim() !== '')) rows.push(row);
-  return rows;
-}
-
-export function parseDate(v) {
-  const s = String(v ?? '').trim();
-  let m;
-  if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return iso(+m[1], +m[2], +m[3]);
-  if ((m = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/))) {
-    let y = +m[3]; if (y < 100) y += y < 70 ? 2000 : 1900;
-    return iso(y, +m[1], +m[2]);
-  }
-  if ((m = s.match(/^(\d{4})(\d{2})(\d{2})/))) return iso(+m[1], +m[2], +m[3]); // OFX 20260131120000
-  return null;
-}
-function iso(y, mo, d) {
-  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
-  const dt = new Date(Date.UTC(y, mo - 1, d));
-  if (dt.getUTCMonth() !== mo - 1) return null;
-  return dt.toISOString().slice(0, 10);
-}
+export { parseCsv };
+export const parseDate = toIsoDate;
 
 const HEAD = {
-  date: ['date', 'posting date', 'posted date', 'transaction date', 'trans. date', 'trans date'],
-  description: ['description', 'payee', 'name', 'details', 'memo', 'transaction description'],
-  amount: ['amount', 'transaction amount'],
-  debit: ['debit', 'withdrawal', 'withdrawals', 'money out', 'debit amount', 'charges'],
-  credit: ['credit', 'deposit', 'deposits', 'money in', 'credit amount', 'payments'],
+  date: ['date', 'posting date', 'posted date', 'post date', 'transaction date', 'trans. date', 'trans date', 'effective date'],
+  description: ['description', 'payee', 'name', 'details', 'memo', 'transaction description', 'merchant', 'merchant name', 'transaction'],
+  amount: ['amount', 'transaction amount', 'amount (usd)', 'amt'],
+  debit: ['debit', 'withdrawal', 'withdrawals', 'money out', 'debit amount', 'charges', 'withdrawal amount', 'debits'],
+  credit: ['credit', 'deposit', 'deposits', 'money in', 'credit amount', 'payments', 'deposit amount', 'credits'],
 };
 
-/** Turn bank CSV text into [{date, description, amount}] (amount positive = money in). */
+// Fuzzy patterns used when a header isn't one of the exact names above.
+const FUZZY = {
+  date: /\bdate\b|\bposted\b/i,
+  description: /desc|detail|memo|payee|merchant|narrative|particulars|\bname\b/i,
+  amount: /amount|\bamt\b|\bvalue\b/i,
+  debit: /debit|withdraw|\bout\b|charge|payment.?out|spent/i,
+  credit: /credit|deposit|\bin\b|received|payment.?in/i,
+};
+
+/** Map header cells to columns: exact names first, then patterns. */
+function detectColumns(cells) {
+  const norm = cells.map((c) => String(c ?? '').trim().toLowerCase());
+  const cols = {}, used = new Set();
+  for (const k of Object.keys(HEAD)) { const i = norm.findIndex((c) => HEAD[k].includes(c)); if (i >= 0) { cols[k] = i; used.add(i); } }
+  for (const k of ['date', 'amount', 'debit', 'credit', 'description']) {
+    if (cols[k] !== undefined) continue;
+    const i = norm.findIndex((c, idx) => c && !used.has(idx) && FUZZY[k].test(c) && !/balance|running/i.test(c));
+    if (i >= 0) { cols[k] = i; used.add(i); }
+  }
+  return cols;
+}
+
+/** First row (of the first 25) that looks like a header: has a date-like cell and at least 3 filled cells. */
+function detectHeaderRow(rows) {
+  for (let i = 0; i < Math.min(rows.length, 25); i++) {
+    const cells = rows[i].map((c) => String(c ?? '').trim());
+    if (cells.filter(Boolean).length >= 3 && detectColumns(cells).date !== undefined && !toIsoDate(cells.find((c) => FUZZY.date.test(c)) ?? '')) return i;
+  }
+  return 0;
+}
+
+/** Work out (or apply) the column layout for a bank export. */
+export function detectLayout(rows, saved = {}) {
+  const headerRow = Number.isInteger(saved.header_row) && saved.header_row >= 0 && saved.header_row < rows.length ? saved.header_row : detectHeaderRow(rows);
+  const headers = (rows[headerRow] ?? []).map((c) => String(c).trim());
+  const auto = detectColumns(headers);
+  const pick = (k) => (Number.isInteger(saved[`${k}_col`]) && saved[`${k}_col`] >= 0 && saved[`${k}_col`] < headers.length ? saved[`${k}_col`] : auto[k] ?? -1);
+  let mode = saved.mode ?? (auto.amount !== undefined ? 'single' : auto.debit !== undefined || auto.credit !== undefined ? 'split' : 'single');
+  if (!['single', 'split'].includes(mode)) mode = 'single';
+  return { header_row: headerRow, headers, mode, date_col: pick('date'), description_col: pick('description'), amount_col: pick('amount'), debit_col: pick('debit'), credit_col: pick('credit'), invert: !!saved.invert };
+}
+
+/** Rows → [{date, description, amount}] using a layout. Amount positive = money in. */
+export function rowsToTransactions(rows, L) {
+  if (L.date_col < 0) throw bad('Choose which column holds the date');
+  if (L.description_col < 0) throw bad('Choose which column holds the description');
+  if (L.mode === 'single' && L.amount_col < 0) throw bad('Choose the amount column (or switch to separate debit/credit columns)');
+  if (L.mode === 'split' && L.debit_col < 0 && L.credit_col < 0) throw bad('Choose the debit and/or credit columns');
+  const out = [];
+  rows.slice(L.header_row + 1).forEach((r, i) => {
+    const rawDate = r[L.date_col];
+    if (rawDate === undefined || String(rawDate).trim() === '') return; // trailing totals / blank lines
+    const date = toIsoDate(rawDate);
+    if (!date) {
+      if (/total|balance|ending|beginning/i.test(r.join(' '))) return;
+      throw bad(`Row ${L.header_row + i + 2}: unrecognized date "${rawDate}". Is the right column chosen?`);
+    }
+    let amount;
+    try {
+      amount = L.mode === 'single' ? toCents(r[L.amount_col]) : Math.abs(toCents(r[L.credit_col] ?? 0)) - Math.abs(toCents(r[L.debit_col] ?? 0));
+    } catch { throw bad(`Row ${L.header_row + i + 2}: the amount isn't a number. Is the right column chosen?`); }
+    if (L.invert) amount = -amount;
+    if (!amount) return;
+    out.push({ date, description: str(r[L.description_col], 300) ?? '(no description)', amount });
+  });
+  return out;
+}
+
+/** Back-compat helper: CSV text → transactions with auto-detected layout. */
 export function parseStatementCsv(text, opts = {}) {
   const rows = parseCsv(text);
   if (rows.length < 2) throw bad('The file has no transactions');
-  const header = rows[0].map((h) => h.trim().toLowerCase());
-  const find = (k) => (opts[`${k}_col`] !== undefined && opts[`${k}_col`] !== null && opts[`${k}_col`] !== '' ? Number(opts[`${k}_col`]) : header.findIndex((h) => HEAD[k].includes(h)));
-  const col = { date: find('date'), description: find('description'), amount: find('amount'), debit: find('debit'), credit: find('credit') };
-  if (col.date < 0) throw bad('Could not find a Date column. Columns found: ' + rows[0].join(', '));
-  if (col.description < 0) throw bad('Could not find a Description column. Columns found: ' + rows[0].join(', '));
-  if (col.amount < 0 && col.debit < 0 && col.credit < 0) throw bad('Could not find an Amount (or Debit/Credit) column. Columns found: ' + rows[0].join(', '));
-  const out = [];
-  rows.slice(1).forEach((r, i) => {
-    const date = parseDate(r[col.date]);
-    if (!date) throw bad(`Row ${i + 2}: unrecognized date "${r[col.date]}"`);
-    let amount;
-    if (col.amount >= 0) amount = toCents(r[col.amount]);
-    else amount = toCents(r[col.credit] || 0) - Math.abs(toCents(r[col.debit] || 0));
-    if (opts.invert) amount = -amount;
-    if (!amount) return;
-    out.push({ date, description: str(r[col.description], 300) ?? '(no description)', amount });
-  });
-  return out;
+  return rowsToTransactions(rows, detectLayout(rows, opts));
 }
 
 /** Minimal OFX/QFX statement parser. */
@@ -88,7 +101,7 @@ export function parseOfx(text) {
   const out = [];
   for (const block of text.split(/<STMTTRN>/i).slice(1)) {
     const tag = (t) => { const m = block.match(new RegExp(`<${t}>([^<\\r\\n]*)`, 'i')); return m ? m[1].trim() : null; };
-    const date = parseDate(tag('DTPOSTED'));
+    const date = toIsoDate(tag('DTPOSTED'));
     const amount = toCents(tag('TRNAMT'));
     if (!date || !amount) continue;
     out.push({ date, amount, description: [tag('NAME'), tag('MEMO')].filter(Boolean).join(' ').slice(0, 300) || '(no description)', fitid: tag('FITID') });
@@ -106,27 +119,110 @@ function feedAccount(db, companyId, id) {
   return a;
 }
 
-export function importStatement(db, companyId, { account_id, content, format, ...opts }, userId) {
-  const acct = feedAccount(db, companyId, intOrNull(account_id));
-  if (!content || typeof content !== 'string') throw bad('No file content');
-  const isOfx = format === 'ofx' || /<OFX>|<STMTTRN>/i.test(content);
-  const parsed = isOfx ? parseOfx(content) : parseStatementCsv(content, opts);
-  const batch = randomUUID();
+export function getImportSettings(db, accountId) {
+  const r = db.get('SELECT settings FROM bank_import_settings WHERE account_id = ?', accountId);
+  return r ? JSON.parse(r.settings) : null;
+}
+
+const LAYOUT_KEYS = ['header_row', 'mode', 'date_col', 'description_col', 'amount_col', 'debit_col', 'credit_col', 'invert'];
+function layoutFromBody(body) {
+  if (!body.layout || typeof body.layout !== 'object') return null;
+  const L = {};
+  for (const k of LAYOUT_KEYS) {
+    const v = body.layout[k];
+    if (v === undefined || v === null || v === '') continue;
+    L[k] = k === 'mode' ? String(v) : k === 'invert' ? !!v && v !== '0' && v !== 'false' : Number(v);
+  }
+  return L;
+}
+
+/** Parse an upload into transactions. Returns { format, layout, headers, txns }. */
+function parseUpload(db, acct, body) {
+  const up = readUpload(body);
+  if (up.format === 'ofx') return { format: 'ofx', txns: parseOfx(up.text), layout: null, headers: [] };
+  if (!up.rows || up.rows.length < 2) throw bad('The file has no transactions');
+  const saved = getImportSettings(db, acct.id) ?? {};
+  const explicit = layoutFromBody(body);
+  const legacy = body.invert !== undefined ? { invert: !!body.invert } : {};
+  const layout = detectLayout(up.rows, { ...saved, ...legacy, ...(explicit ?? {}) });
+  return { format: up.format, layout, headers: layout.headers, txns: rowsToTransactions(up.rows, layout), rows: up.rows };
+}
+
+function fingerprints(txns) {
   const seen = new Map();
+  return txns.map((t) => {
+    const base = t.fitid ? `fitid:${t.fitid}` : `${t.date}|${t.amount}|${t.description.toLowerCase().replace(/\s+/g, ' ')}`;
+    const n = (seen.get(base) ?? 0) + 1; seen.set(base, n);
+    return createHash('sha256').update(t.fitid ? base : `${base}|${n}`).digest('hex').slice(0, 32);
+  });
+}
+
+/** Preview an upload without saving: detected layout, sample rows, duplicate count. Errors in the layout are returned, not thrown. */
+export function previewStatement(db, companyId, body) {
+  const acct = feedAccount(db, companyId, intOrNull(body.account_id));
+  const up = readUpload(body);
+  const last = lastImport(db, acct.id);
+  if (up.format === 'ofx') {
+    const txns = parseOfx(up.text);
+    return { format: 'ofx', ...summarize(db, acct, txns), last_import: last };
+  }
+  if (!up.rows || up.rows.length < 2) throw bad('The file has no transactions');
+  const saved = getImportSettings(db, acct.id);
+  const layout = detectLayout(up.rows, { ...(saved ?? {}), ...(layoutFromBody(body) ?? {}) });
+  const rawSample = up.rows.slice(0, Math.min(up.rows.length, Math.max(12, layout.header_row + 6)));
+  let txns = [], error = null;
+  try { txns = rowsToTransactions(up.rows, layout); } catch (e) { error = e.message; }
+  return { format: up.format, layout, saved_layout: !!saved, raw_sample: rawSample, error, ...summarize(db, acct, txns), last_import: last };
+}
+
+function summarize(db, acct, txns) {
+  const fps = fingerprints(txns);
+  const dup = fps.filter((fp) => db.get('SELECT 1 FROM bank_feed WHERE account_id = ? AND fingerprint = ?', acct.id, fp)).length;
+  const dates = txns.map((t) => t.date).sort();
+  return { count: txns.length, duplicates: dup, first_date: dates[0] ?? null, last_date: dates.at(-1) ?? null, sample: txns.slice(0, 8),
+    money_in: txns.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0), money_out: txns.filter((t) => t.amount < 0).reduce((s, t) => s - t.amount, 0) };
+}
+
+export function lastImport(db, accountId) {
+  return db.get(`SELECT i.*, u.name AS user_name FROM bank_imports i LEFT JOIN users u ON u.id = i.user_id WHERE i.account_id = ? ORDER BY i.id DESC LIMIT 1`, accountId) ?? null;
+}
+
+export function importHistory(db, companyId, accountId) {
+  feedAccount(db, companyId, accountId);
+  return db.all(`SELECT i.*, u.name AS user_name FROM bank_imports i LEFT JOIN users u ON u.id = i.user_id WHERE i.account_id = ? ORDER BY i.id DESC LIMIT 50`, accountId);
+}
+
+export function importStatement(db, companyId, body, userId) {
+  const acct = feedAccount(db, companyId, intOrNull(body.account_id));
+  if (!body.content && !body.data_base64) throw bad('No file content');
+  const parsed = parseUpload(db, acct, body);
+  if (!parsed.txns.length) throw bad('No transactions found in that file');
+  const batch = randomUUID();
+  const fps = fingerprints(parsed.txns);
   let imported = 0, duplicates = 0;
   db.tx(() => {
-    for (const t of parsed) {
-      const base = t.fitid ? `fitid:${t.fitid}` : `${t.date}|${t.amount}|${t.description.toLowerCase().replace(/\s+/g, ' ')}`;
-      const n = (seen.get(base) ?? 0) + 1; seen.set(base, n);
-      const fp = createHash('sha256').update(t.fitid ? base : `${base}|${n}`).digest('hex').slice(0, 32);
+    parsed.txns.forEach((t, i) => {
       const r = db.run(`INSERT OR IGNORE INTO bank_feed (company_id, account_id, date, description, amount, fingerprint, import_batch) VALUES (?,?,?,?,?,?,?)`,
-        companyId, acct.id, t.date, t.description, t.amount, fp, batch);
+        companyId, acct.id, t.date, t.description, t.amount, fps[i], batch);
       if (r.changes) imported++; else duplicates++;
+    });
+    const dates = parsed.txns.map((t) => t.date).sort();
+    db.run('INSERT INTO bank_imports (company_id, account_id, batch, file_name, format, imported, duplicates, first_date, last_date, user_id) VALUES (?,?,?,?,?,?,?,?,?,?)',
+      companyId, acct.id, batch, str(body.file_name, 200), parsed.format, imported, duplicates, dates[0], dates.at(-1), userId);
+    if (parsed.layout && body.remember !== false) {
+      const keep = Object.fromEntries(LAYOUT_KEYS.map((k) => [k, parsed.layout[k]]));
+      db.run('INSERT INTO bank_import_settings (account_id, settings) VALUES (?, ?) ON CONFLICT(account_id) DO UPDATE SET settings = excluded.settings', acct.id, JSON.stringify(keep));
     }
     audit(db, { companyId, userId, action: 'import', entity: 'bank_feed', entityId: acct.id, summary: `${imported} transactions imported into ${acct.name} (${duplicates} duplicates skipped)` });
   });
   const auto = applyRules(db, companyId, { account_id: acct.id }, userId);
   return { imported, duplicates, auto_added: auto.added, batch };
+}
+
+export function forgetImportSettings(db, companyId, accountId) {
+  feedAccount(db, companyId, accountId);
+  db.run('DELETE FROM bank_import_settings WHERE account_id = ?', accountId);
+  return { ok: true };
 }
 
 export function listFeed(db, companyId, { account_id, status = 'review' }) {

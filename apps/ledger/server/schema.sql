@@ -258,3 +258,39 @@ CREATE TABLE IF NOT EXISTS saved_reports (
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE (company_id, name)
 );
+
+-- History of bank statement uploads (drives "data through" / "last imported").
+CREATE TABLE IF NOT EXISTS bank_imports (
+  id INTEGER PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  account_id INTEGER NOT NULL REFERENCES accounts(id),
+  batch TEXT NOT NULL,
+  file_name TEXT,
+  format TEXT,
+  imported INTEGER NOT NULL DEFAULT 0,
+  duplicates INTEGER NOT NULL DEFAULT 0,
+  first_date TEXT,
+  last_date TEXT,
+  user_id INTEGER REFERENCES users(id),
+  at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS ix_bank_imports_account ON bank_imports(account_id, at);
+
+-- Remembered column layout for each bank/card account's CSV or Excel export.
+CREATE TABLE IF NOT EXISTS bank_import_settings (
+  account_id INTEGER PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+  settings TEXT NOT NULL
+);
+
+-- Data imported from QuickBooks Online (or other systems); opening-balance imports can be undone.
+CREATE TABLE IF NOT EXISTS imports (
+  id INTEGER PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  file_name TEXT,
+  summary TEXT,
+  txn_ids TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'done' CHECK (status IN ('done','undone')),
+  user_id INTEGER REFERENCES users(id),
+  at TEXT NOT NULL DEFAULT (datetime('now'))
+);
