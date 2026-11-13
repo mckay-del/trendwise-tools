@@ -17,6 +17,10 @@ npm start             # http://127.0.0.1:3000
 
 Requires Node.js 22.13 or newer (install the LTS from nodejs.org). Without the demo seed, the first visit asks you to create the administrator account. The app version is shown at the bottom of the left menu.
 
+### Using the same books from another computer
+
+See **[REMOTE-ACCESS.md](REMOTE-ACCESS.md)**. One computer keeps the books, and your other computers open them in a browser over Tailscale (private and encrypted). Helpers: `Share With My Other Computers.bat`, `Stop Sharing.bat`, `Start Automatically With Windows.bat`. If two people edit the same transaction at once, the second save is refused with a "reload to see their changes" message instead of overwriting.
+
 ### Where the books are stored
 
 In a **`TrendwiseLedger`** folder in your user folder (for example `C:\Users\you\TrendwiseLedger\ledger.db`), deliberately **outside** the app folder, so client data never syncs to OneDrive or goes into git with the code. Settings → Backup shows the exact path. Books from older versions (stored in `apps/ledger/data`) are copied there automatically the first time the new version starts. The old copy is left in place with a note, and you can delete it once you've checked everything.

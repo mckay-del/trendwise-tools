@@ -215,7 +215,7 @@ async function renderApply(S) {
   const host = $('[data-section=apply]', S.form);
   const docType = APPLY[S.type];
   const partyField = docType === 'invoice' ? 'customer_id' : 'vendor_id';
-  const partyId = S.form[partyField]?.value;
+  const partyId = S.form.querySelector(`.header-fields [name="${partyField}"]`)?.value;
   if (!partyId || partyId === '__new') { host.innerHTML = S.type === 'payment' || S.type === 'bill_payment' ? html`<section class="card"><p class="muted">Choose a ${docType === 'invoice' ? 'customer' : 'vendor'} to see open ${docType}s.</p></section>` : ''; return; }
   const docs = await S.ctx.capi.get('/open-documents', { type: docType, [partyField]: partyId, exclude: S.t.id });
   const applied = new Map((S.t.applications ?? []).map((a) => [a.target_txn_id, a.amount]));
@@ -400,7 +400,7 @@ function wire(S) {
     const body = collect(S);
     $$('.action-bar button', form).forEach((b) => { b.disabled = true; });
     try {
-      const saved = S.isNew ? await ctx.capi.post('/transactions', body) : await ctx.capi.put(`/transactions/${S.t.id}`, body);
+      const saved = S.isNew ? await ctx.capi.post('/transactions', body) : await ctx.capi.put(`/transactions/${S.t.id}`, { ...body, expected_updated_at: S.t.updated_at });
       toast(`${ctx.meta.txn_types[type].label} ${saved.number ?? ''} saved`);
       if (saveMode === 'new') { if (S.isNew) ctx.reload(); else ctx.navigate(ctx.cpath('new/' + type)); }
       else if (history.length > 1 && S.isNew && ctx.query.apply) history.back();
@@ -448,7 +448,9 @@ function lineMath(tr, changed) {
 
 function collect(S) {
   const f = S.form;
-  const v = (n) => f[n]?.value ?? undefined;
+  // Read header fields from the header/footer sections only: line rows reuse names like account_id and customer_id,
+  // and form[name] would then return a list instead of the header field.
+  const v = (n) => (f.querySelector(`.header-fields [name="${n}"]`) ?? f.querySelector(`.footer-fields [name="${n}"]`))?.value ?? undefined;
   const body = { type: S.type, date: v('date'), number: v('number'), memo: v('memo') };
   for (const k of ['customer_id', 'vendor_id', 'account_id', 'to_account_id', 'due_date', 'billing_address', 'tax_rate_id', 'total']) {
     const val = v(k);
