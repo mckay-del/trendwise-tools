@@ -11,8 +11,10 @@ Internal reference documents and tools for Trendwise Business Services.
 ├── README.md                          ← this file
 ├── docs/
 │   └── trendwise_context.md           ← master offer architecture, packages, positioning, fields
-└── roadmap/
-    └── index.html                     ← interactive build roadmap (hosted via Cloudflare Pages)
+├── roadmap/
+│   └── index.html                     ← interactive build roadmap (hosted via Cloudflare Pages)
+└── apps/
+    └── ledger/                        ← Trendwise Ledger: QBO-style bookkeeping app (see apps/ledger/README.md)
 ```
 
 ## Key files
