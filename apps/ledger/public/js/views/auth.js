@@ -3,7 +3,7 @@ import { html, raw, on, modal, field, toast } from '../ui.js';
 import { setUser } from '../app.js';
 
 function authCard(title, body) {
-  return html`<div class="auth-page"><div class="auth-card"><div class="brand big"><span class="logo">TL</span><span>Trendwise Ledger</span></div><h1>${title}</h1>${raw(body)}</div></div>`;
+  return html`<div class="auth-page"><div class="auth-card"><div class="brand big"><img class="brand-logo" src="/img/trendwise-logo.png" alt="TrendWise Business Services"><span class="brand-app">Ledger</span></div><h1>${title}</h1>${raw(body)}</div></div>`;
 }
 
 export async function login(ctx) {

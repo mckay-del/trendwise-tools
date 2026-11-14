@@ -171,7 +171,7 @@ function renderShell(force = false) {
   $('#app').innerHTML = html`
     <div class="shell">
       <aside class="sidebar" aria-label="Main navigation">
-        <div class="brand"><span class="logo">TL</span><span>Trendwise<br><small>Ledger</small></span></div>
+        <div class="brand"><img class="brand-logo" src="/img/trendwise-logo.png" alt="TrendWise Business Services"><span class="brand-app">Ledger</span></div>
         <div class="new-wrap">
           <button class="btn btn-new" data-action="new-menu" aria-haspopup="true" aria-expanded="false">＋ New</button>
           <div class="new-menu" hidden>${raw(NEW_MENU.map(([g, items]) => html`<div class="new-col"><h4>${g}</h4>${raw(items.map(([t, l]) => html`<a href="${chref('new/' + t)}">${l}</a>`).join(''))}</div>`).join(''))}</div>
