@@ -102,7 +102,7 @@ export function modal({ title, body, submitLabel = 'Save', onSubmit, onClose, wi
 export function confirmDialog(message, { title = 'Are you sure?', okLabel = 'OK', danger = true } = {}) {
   return new Promise((resolve) => {
     let ok = false;
-    const m = modal({ title, body: html`<p>${message}</p>`, submitLabel: okLabel, danger, onSubmit: () => { ok = true; } });
+    const m = modal({ title, body: html`<p class="pre">${message}</p>`, submitLabel: okLabel, danger, onSubmit: () => { ok = true; } });
     const obs = new MutationObserver(() => { if (!document.body.contains(m.el)) { obs.disconnect(); resolve(ok); } });
     obs.observe(document.body, { childList: true });
   });

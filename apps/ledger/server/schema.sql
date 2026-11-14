@@ -349,5 +349,6 @@ CREATE TABLE IF NOT EXISTS close_periods (
   notes TEXT,
   closed_at TEXT,
   closed_by INTEGER REFERENCES users(id),
+  prev_closing_date TEXT,            -- closing date before this month was closed (restored on reopen)
   UNIQUE (company_id, period)
 );

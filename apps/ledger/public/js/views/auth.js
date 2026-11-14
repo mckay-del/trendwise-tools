@@ -86,11 +86,19 @@ export function companyForm(c = {}) {
 
 export async function companies(ctx) {
   document.title = 'Companies · Trendwise Ledger';
-  const list = await api.get('/api/companies');
+  const [list, overview] = await Promise.all([api.get('/api/companies'), api.get('/api/close-overview').catch(() => [])]);
+  const ov = Object.fromEntries(overview.map((o) => [o.company_id, o]));
+  const mName = (p) => new Date(`${p}-01T00:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  const closeBadge = (c) => {
+    const o = ov[c.id];
+    if (!o?.progress) return '';
+    const label = o.closed ? `${mName(o.period)} closed` : o.ready ? `${mName(o.period)} ready to close` : `${mName(o.period)} close: ${o.progress.done}/${o.progress.total}`;
+    return html`<a class="badge ${o.closed ? 'badge-ok' : o.ready ? 'badge-info' : 'badge-warn'}" href="#/c/${c.id}/close?period=${o.period}">${label}</a>`;
+  };
   const isAdmin = ctx.user.role === 'admin';
   const body = html`<div class="page narrow">
     <div class="page-head"><h1>Your companies</h1>${isAdmin ? raw('<button class="btn btn-primary" data-action="add-company">＋ New company</button>') : ''}</div>
-    ${list.length ? raw(html`<div class="company-list">${raw(list.map((c) => html`<a class="company-card" href="#/c/${c.id}/dashboard"><strong>${c.name}</strong><span class="muted">${c.legal_name ?? ''}${c.ein ? ` · EIN ${c.ein}` : ''}</span></a>`).join(''))}</div>`)
+    ${list.length ? raw(html`<div class="company-list">${raw(list.map((c) => html`<div class="company-card clickable" data-href="#/c/${c.id}/dashboard" tabindex="0" role="link"><a href="#/c/${c.id}/dashboard"><strong>${c.name}</strong></a><span class="muted">${c.legal_name ?? ''}${c.ein ? ` · EIN ${c.ein}` : ''}${c.closing_date ? ` · books closed through ${c.closing_date}` : ''}</span><span>${raw(closeBadge(c))}</span></div>`).join(''))}</div>`)
       : raw(html`<div class="empty"><p>No companies yet.</p>${isAdmin ? raw('<button class="btn btn-primary" data-action="add-company">Create your first company</button>') : raw('<p>Ask an administrator to add one.</p>')}</div>`)}
   </div>`;
   ctx.el.innerHTML = (body);

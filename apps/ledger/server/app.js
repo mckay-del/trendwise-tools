@@ -14,6 +14,7 @@ import * as saved from './services/saved.js';
 import * as qbo from './services/qboImport.js';
 import * as recur from './services/recurring.js';
 import * as files from './services/attachments.js';
+import * as closing from './services/close.js';
 import { getFirm, saveFirm } from './services/firm.js';
 import { createBackup, lastBackup, decryptBackup, inspectImage } from './backup.js';
 import { readFileSync } from 'node:fs';
@@ -144,6 +145,13 @@ export function buildRouter(db) {
   r.put('/api/c/:cid/reconcile/:id', (ctx) => bank.saveClearedFlags(db, cid(ctx), id(ctx), ctx.body));
   r.post('/api/c/:cid/reconcile/:id/finish', (ctx) => bank.finishReconciliation(db, cid(ctx), id(ctx), ctx.body, uid(ctx)), { closeBooks: false });
   r.post('/api/c/:cid/reconcile/:id/undo', (ctx) => bank.undoLastReconciliation(db, cid(ctx), id(ctx), uid(ctx)), { closeBooks: true });
+
+  // --- Month-end close ---
+  r.get('/api/close-overview', () => closing.closeOverview(db));
+  r.get('/api/c/:cid/close', (ctx) => { const c = company(ctx); return closing.closeStatus(db, c, ctx.query.period || closing.defaultPeriod(c)); });
+  r.put('/api/c/:cid/close/:period', (ctx) => closing.saveCloseChecks(db, company(ctx), ctx.params.period, ctx.body, ctx.user));
+  r.post('/api/c/:cid/close/:period/close', (ctx) => closing.closePeriod(db, company(ctx), ctx.params.period, ctx.body, ctx.user), { closeBooks: true });
+  r.post('/api/c/:cid/close/:period/reopen', (ctx) => closing.reopenPeriod(db, company(ctx), ctx.params.period, ctx.user), { closeBooks: true });
 
   // --- Attachments ---
   r.get('/api/c/:cid/transactions/:id/attachments', (ctx) => files.listAttachments(db, cid(ctx), id(ctx)));

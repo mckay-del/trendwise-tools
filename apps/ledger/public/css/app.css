@@ -445,3 +445,29 @@ details summary { cursor: pointer; }
 .dropzone { display: flex; align-items: center; justify-content: center; padding: 1rem; border: 2px dashed var(--border); border-radius: var(--radius); color: var(--muted); cursor: pointer; }
 .dropzone.over, .dropzone:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
 .dropzone input { display: none; }
+
+/* Month-end close */
+.month-nav strong { min-width: 9rem; text-align: center; }
+.close-summary { display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 1.5rem; align-items: center; }
+.close-summary small { display: block; color: var(--muted); }
+.close-summary b { font-size: 1.15rem; }
+.progress { height: 10px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin-top: .35rem; border: 1px solid var(--border); }
+.progress > div { height: 100%; background: var(--brand); }
+.checklist { list-style: none; padding: 0; margin: 0; }
+.checklist > li { display: flex; gap: .8rem; align-items: flex-start; padding: .7rem .2rem; border-bottom: 1px solid var(--border); }
+.checklist > li:last-child { border-bottom: 0; }
+.checklist .detail { margin: .3rem 0 0; padding-left: 1rem; font-size: .9rem; color: var(--muted); }
+.checklist .detail li.ok { color: var(--ok); }
+.ck { display: inline-grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; font-weight: 800; font-size: .85rem; flex: none; }
+.ck.ok { background: var(--ok-soft); color: var(--ok); }
+.ck.todo { background: var(--bad-soft); color: var(--bad); }
+.ck.warn { background: var(--warn-soft); color: var(--warn); font-style: italic; }
+.checklist.manual label.check { align-items: flex-start; }
+.checklist.manual input { margin-top: .25rem; }
+.quick-links { margin: 1rem 0; }
+.close-actions { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.company-card a:first-child { color: var(--text); }
+.company-card .badge { align-self: flex-start; margin-top: .3rem; text-decoration: none; }
+@media (max-width: 760px) { .close-summary { grid-template-columns: 1fr; } }
+
+.company-card.clickable { cursor: pointer; }
