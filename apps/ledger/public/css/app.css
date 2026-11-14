@@ -471,3 +471,10 @@ details summary { cursor: pointer; }
 @media (max-width: 760px) { .close-summary { grid-template-columns: 1fr; } }
 
 .company-card.clickable { cursor: pointer; }
+
+/* GHL sync */
+.steps { padding-left: 1.2rem; line-height: 1.7; }
+.steps code { white-space: nowrap; }
+.issue-list { list-style: none; padding: 0; margin: 0; }
+.issue-list li { display: flex; gap: .8rem; align-items: baseline; padding: .5rem 0; border-bottom: 1px solid var(--border); }
+.issue-list li span { flex: 1; }

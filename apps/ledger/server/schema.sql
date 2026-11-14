@@ -352,3 +352,41 @@ CREATE TABLE IF NOT EXISTS close_periods (
   prev_closing_date TEXT,            -- closing date before this month was closed (restored on reopen)
   UNIQUE (company_id, period)
 );
+
+-- GoHighLevel (GHL) sub-account connection per company. The token is a read-only Private Integration key.
+CREATE TABLE IF NOT EXISTS ghl_connections (
+  company_id INTEGER PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
+  location_id TEXT NOT NULL,
+  token TEXT NOT NULL,
+  start_date TEXT NOT NULL,            -- only GHL invoices/payments on or after this date come in
+  income_account_id INTEGER REFERENCES accounts(id),
+  is_enabled INTEGER NOT NULL DEFAULT 1,
+  last_sync_at TEXT,
+  last_result TEXT,                    -- JSON summary of the last sync
+  last_error TEXT
+);
+
+-- Links between records in another system (GHL) and what they created here, so syncing is repeatable.
+CREATE TABLE IF NOT EXISTS external_links (
+  id INTEGER PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  source TEXT NOT NULL,                -- 'ghl'
+  kind TEXT NOT NULL,                  -- 'contact' | 'product' | 'invoice' | 'payment' | 'refund'
+  external_id TEXT NOT NULL,
+  local_id INTEGER,                    -- customers.id / items.id / transactions.id
+  fingerprint TEXT,                    -- detects changes on the GHL side
+  synced_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (company_id, source, kind, external_id)
+);
+
+-- Problems the sync couldn't resolve on its own (shown on the GHL settings card).
+CREATE TABLE IF NOT EXISTS sync_issues (
+  id INTEGER PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  source TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  external_id TEXT NOT NULL,
+  message TEXT NOT NULL,
+  at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (company_id, source, kind, external_id)
+);

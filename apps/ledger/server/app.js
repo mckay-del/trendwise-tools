@@ -15,6 +15,7 @@ import * as qbo from './services/qboImport.js';
 import * as recur from './services/recurring.js';
 import * as files from './services/attachments.js';
 import * as closing from './services/close.js';
+import * as ghl from './services/ghl.js';
 import { getFirm, saveFirm } from './services/firm.js';
 import { createBackup, lastBackup, decryptBackup, inspectImage } from './backup.js';
 import { readFileSync } from 'node:fs';
@@ -145,6 +146,14 @@ export function buildRouter(db) {
   r.put('/api/c/:cid/reconcile/:id', (ctx) => bank.saveClearedFlags(db, cid(ctx), id(ctx), ctx.body));
   r.post('/api/c/:cid/reconcile/:id/finish', (ctx) => bank.finishReconciliation(db, cid(ctx), id(ctx), ctx.body, uid(ctx)), { closeBooks: false });
   r.post('/api/c/:cid/reconcile/:id/undo', (ctx) => bank.undoLastReconciliation(db, cid(ctx), id(ctx), uid(ctx)), { closeBooks: true });
+
+  // --- GoHighLevel sync ---
+  r.get('/api/c/:cid/ghl', (ctx) => ghl.getConnection(db, cid(ctx)) ?? {});
+  r.put('/api/c/:cid/ghl', (ctx) => ghl.saveConnection(db, cid(ctx), ctx.body, uid(ctx)), { closeBooks: true });
+  r.delete('/api/c/:cid/ghl', (ctx) => ghl.deleteConnection(db, cid(ctx), uid(ctx)), { closeBooks: true });
+  r.post('/api/c/:cid/ghl/test', (ctx) => ghl.testConnection(db, cid(ctx)));
+  r.post('/api/c/:cid/ghl/sync', (ctx) => ghl.syncCompany(db, cid(ctx), { dryRun: !!ctx.body.dryRun }));
+  r.delete('/api/c/:cid/ghl/issues/:id', (ctx) => ghl.dismissIssue(db, cid(ctx), id(ctx)));
 
   // --- Month-end close ---
   r.get('/api/close-overview', () => closing.closeOverview(db));
