@@ -360,7 +360,7 @@ CREATE TABLE IF NOT EXISTS ghl_connections (
   token TEXT NOT NULL,
   start_date TEXT NOT NULL,            -- only GHL invoices/payments on or after this date come in
   income_account_id INTEGER REFERENCES accounts(id),
-  is_enabled INTEGER NOT NULL DEFAULT 1,
+  schedule TEXT NOT NULL DEFAULT 'daily' CHECK (schedule IN ('manual','daily','hourly')),
   last_sync_at TEXT,
   last_result TEXT,                    -- JSON summary of the last sync
   last_error TEXT

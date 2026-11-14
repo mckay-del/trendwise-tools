@@ -10,6 +10,7 @@ import { audit } from './audit.js';
 const API_BASE = () => process.env.GHL_API_BASE || 'https://services.leadconnectorhq.com';
 const API_VERSION = '2021-07-28';
 const PAGE = 100;
+export const SCHEDULES = ['manual', 'daily', 'hourly'];
 class Rollback extends Error {}
 
 // ---------------------------------------------------------------------------
@@ -34,11 +35,12 @@ export function saveConnection(db, companyId, body, userId) {
   const start = requireDate(body.start_date ?? existing?.start_date ?? defaultStart, 'start date');
   const inc = intOrNull(body.income_account_id ?? existing?.income_account_id);
   if (inc) { const a = getAccount(db, companyId, inc); if (!['income', 'other_income'].includes(a.type)) throw bad('Choose an income account'); }
-  const enabled = body.is_enabled === undefined ? (existing?.is_enabled ?? 1) : body.is_enabled ? 1 : 0;
-  db.run(`INSERT INTO ghl_connections (company_id, location_id, token, start_date, income_account_id, is_enabled) VALUES (?,?,?,?,?,?)
-    ON CONFLICT(company_id) DO UPDATE SET location_id=excluded.location_id, token=excluded.token, start_date=excluded.start_date, income_account_id=excluded.income_account_id, is_enabled=excluded.is_enabled`,
-  companyId, location, token, start, inc, enabled);
-  audit(db, { companyId, userId, action: existing ? 'update' : 'create', entity: 'ghl_connection', summary: `GHL sub-account ${location}, from ${start}${enabled ? '' : ' (paused)'}` });
+  const schedule = body.schedule ?? existing?.schedule ?? 'daily';
+  if (!SCHEDULES.includes(schedule)) throw bad('Choose how often to sync: manual, daily or hourly');
+  db.run(`INSERT INTO ghl_connections (company_id, location_id, token, start_date, income_account_id, schedule) VALUES (?,?,?,?,?,?)
+    ON CONFLICT(company_id) DO UPDATE SET location_id=excluded.location_id, token=excluded.token, start_date=excluded.start_date, income_account_id=excluded.income_account_id, schedule=excluded.schedule`,
+  companyId, location, token, start, inc, schedule);
+  audit(db, { companyId, userId, action: existing ? 'update' : 'create', entity: 'ghl_connection', summary: `GHL sub-account ${location}, from ${start}, sync ${schedule}` });
   return getConnection(db, companyId);
 }
 
@@ -348,10 +350,18 @@ export async function syncCompany(db, companyId, { dryRun = false } = {}) {
   return { dry_run: false, stats, preview };
 }
 
-/** Hourly: sync every enabled connection, one after another. */
-export async function syncAll(db) {
+/** Which connections are due for an automatic sync right now. Daily ones run once overnight (1–5 AM local time). */
+export function dueForSync(db, now = new Date(), tz = process.env.LEDGER_TZ || 'America/Los_Angeles') {
+  const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hourCycle: 'h23' }).format(now));
+  const hoursSince = (ts) => (ts ? (now - new Date(ts.replace(' ', 'T') + 'Z')) / 3600000 : Infinity);
+  return db.all("SELECT company_id, schedule, last_sync_at FROM ghl_connections WHERE schedule != 'manual'")
+    .filter((c) => (c.schedule === 'hourly' ? hoursSince(c.last_sync_at) >= 0.9 : hour >= 1 && hour < 5 && hoursSince(c.last_sync_at) >= 20));
+}
+
+/** Called hourly by the server: sync the connections that are due, one after another. */
+export async function syncAll(db, now = new Date()) {
   const results = [];
-  for (const c of db.all('SELECT company_id FROM ghl_connections WHERE is_enabled = 1')) {
+  for (const c of dueForSync(db, now)) {
     try { results.push({ company_id: c.company_id, ...(await syncCompany(db, c.company_id)).stats }); }
     catch (e) { results.push({ company_id: c.company_id, error: e.message }); }
   }

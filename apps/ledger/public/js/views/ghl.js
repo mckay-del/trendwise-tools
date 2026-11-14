@@ -10,7 +10,7 @@ export async function view(ctx) {
   const income = accounts.filter((a) => a.type === 'income');
   const r = conn.last_result;
   ctx.el.innerHTML = html`<div class="page narrow">
-    <div class="page-head"><h1>GoHighLevel sync</h1>${connected ? raw(html`<span class="badge ${conn.is_enabled ? 'badge-ok' : 'badge-muted'}">${conn.is_enabled ? 'Connected · syncs hourly' : 'Paused'}</span>`) : ''}</div>
+    <div class="page-head"><h1>GoHighLevel sync</h1>${connected ? raw(html`<span class="badge ${conn.schedule === 'manual' ? 'badge-muted' : 'badge-ok'}">Connected · ${{ manual: 'syncs when you click Sync now', daily: 'syncs nightly', hourly: 'syncs hourly' }[conn.schedule]}</span>`) : ''}</div>
     <p class="muted">Brings this client's GHL <b>invoices</b> and <b>payments</b> (Stripe) into the books automatically: invoices become invoices (A/R), payments are applied to them and land in <b>Undeposited Funds</b>, and funnel or order payments become sales receipts. Read-only: nothing is ever changed in GHL.</p>
 
     ${connected ? raw(html`<section class="card">
@@ -44,7 +44,7 @@ export async function view(ctx) {
         ${raw(field(connected ? 'Private Integration key (leave blank to keep)' : 'Private Integration key', html`<input name="token" type="password" placeholder="${conn.token_hint ?? 'pit-…'}" ${connected ? '' : raw('required')} ${canEdit ? '' : raw('disabled')} autocomplete="off">`))}
         ${raw(field('Bring in GHL activity from', html`<input type="date" name="start_date" value="${conn.start_date ?? ''}" ${canEdit ? '' : raw('disabled')}>`, { hint: 'Usually the day after your opening balances (cutover). Earlier GHL invoices are skipped so A/R isn\'t counted twice.' }))}
         ${raw(field('Income account for GHL items', html`<select name="income_account_id" ${canEdit ? '' : raw('disabled')}>${raw(options(income, conn.income_account_id, { blank: 'First income account', label: (a) => `${a.number ? a.number + ' ' : ''}${a.name}` }))}</select>`, { hint: 'GHL products become Products & Services using this account; change any product later.' }))}
-        ${connected ? raw(html`<label class="check span-2"><input type="checkbox" name="is_enabled" value="1" ${conn.is_enabled ? raw('checked') : ''} ${canEdit ? '' : raw('disabled')}> Sync automatically every hour</label>`) : ''}
+        ${raw(field('Sync automatically', html`<select name="schedule" ${canEdit ? '' : raw('disabled')}>${raw(options([{ id: 'daily', name: 'Daily (overnight, about 1–5 AM)' }, { id: 'hourly', name: 'Every hour' }, { id: 'manual', name: 'Only when I click Sync now' }], conn.schedule ?? 'daily'))}</select>`, { hint: 'The month-end close checklist also reminds you to sync after month end.' }))}
         ${canEdit ? raw(html`<div class="span-2 btn-row"><button class="btn btn-primary">${connected ? 'Save settings' : 'Connect'}</button>${connected ? raw('<button type="button" class="btn btn-ghost danger" data-action="disconnect">Disconnect</button>') : ''}</div>`) : raw('<p class="muted span-2">Only admins and accountants can change the connection.</p>')}
       </form>
     </section>
@@ -64,7 +64,7 @@ export async function view(ctx) {
   on(ctx.el, 'submit', '[data-form=conn]', async (e, f) => {
     e.preventDefault();
     const d = Object.fromEntries(new FormData(f));
-    const body = { location_id: d.location_id, start_date: d.start_date, income_account_id: d.income_account_id || null, ...(d.token ? { token: d.token } : {}), ...(connected ? { is_enabled: !!d.is_enabled } : {}) };
+    const body = { location_id: d.location_id, start_date: d.start_date, income_account_id: d.income_account_id || null, ...(d.token ? { token: d.token } : {}), schedule: d.schedule };
     try { await ctx.capi.put('/ghl', body); toast(connected ? 'Saved' : 'Connected. Run a Preview next.'); ctx.reload(); } catch (ex) { toast(ex.message, 'error'); }
   });
   on(ctx.el, 'click', '[data-action=test]', async (e, b) => {

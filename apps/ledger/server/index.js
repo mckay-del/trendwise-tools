@@ -37,7 +37,7 @@ function runRecurring() {
 runRecurring();
 setInterval(runRecurring, 60 * 60 * 1000).unref();
 
-// GoHighLevel: pull new invoices and payments for every connected client, hourly (first run 2 minutes after start).
+// GoHighLevel: every hour, sync the clients that are due (daily ones overnight, hourly ones each hour; first check 2 minutes after start).
 let ghlRunning = false;
 async function runGhl() {
   if (ghlRunning) return;

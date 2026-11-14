@@ -129,3 +129,32 @@ test('GHL sync pages through long lists', async () => {
   assert.equal(r.stats.invoices.created, 150);
   assert.equal(db.get("SELECT COUNT(*) AS n FROM transactions WHERE type='invoice'").n, 150);
 });
+
+test('sync schedules and the month-end checklist item', async () => {
+  const { dueForSync } = await import('../server/services/ghl.js');
+  const { closeStatus } = await import('../server/services/close.js');
+  const db = new Db(':memory:');
+  const daily = createCompany(db, { name: 'Daily Co' });
+  const hourly = createCompany(db, { name: 'Hourly Co' });
+  const manual = createCompany(db, { name: 'Manual Co' });
+  saveConnection(db, daily.id, { location_id: LOC, token: TOKEN, start_date: '2026-01-01' });
+  saveConnection(db, hourly.id, { location_id: LOC, token: TOKEN, start_date: '2026-01-01', schedule: 'hourly' });
+  saveConnection(db, manual.id, { location_id: LOC, token: TOKEN, start_date: '2026-01-01', schedule: 'manual' });
+  const ids = (now) => dueForSync(db, now).map((c) => c.company_id).sort();
+  // 2:30 AM and 2:30 PM Pacific (UTC-8 in November)
+  const night = new Date('2026-11-14T10:30:00Z'), afternoon = new Date('2026-11-14T22:30:00Z');
+  assert.deepEqual(ids(night), [daily.id, hourly.id]);
+  assert.deepEqual(ids(afternoon), [hourly.id], 'daily clients wait for the overnight window');
+  db.run("UPDATE ghl_connections SET last_sync_at = '2026-11-14 09:45:00'");
+  assert.deepEqual(ids(night), [], 'nothing re-runs right after a sync');
+  assert.deepEqual(ids(new Date('2026-11-14T11:00:00Z')), [hourly.id], 'hourly runs again an hour later; daily waits for tomorrow night');
+
+  const c = () => db.get('SELECT * FROM companies WHERE id = ?', daily.id);
+  db.run("UPDATE ghl_connections SET last_sync_at = '2026-10-31 20:00:00' WHERE company_id = ?", daily.id);
+  let item = closeStatus(db, c(), '2026-10').items.find((i) => i.key === 'ghl');
+  assert.equal(item.status, 'todo', 'synced before month end ended');
+  db.run("UPDATE ghl_connections SET last_sync_at = '2026-11-02 09:00:00' WHERE company_id = ?", daily.id);
+  item = closeStatus(db, c(), '2026-10').items.find((i) => i.key === 'ghl');
+  assert.equal(item.status, 'ok');
+  assert.equal(closeStatus(db, db.get('SELECT * FROM companies WHERE id = ?', createCompany(db, { name: 'No GHL' }).id), '2026-10').items.some((i) => i.key === 'ghl'), false, 'only shown for connected clients');
+});
