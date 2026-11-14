@@ -68,7 +68,7 @@ Run tests with `npm test`.
 
 ## Look and branding
 
-The app uses the Trendwise Business Services brand: ink and warm-white surfaces, a gold accent, DM Serif Display headings and DM Sans text, near-square corners, and the TrendWise shield logo (`public/img/`). It follows the computer's light or dark setting. The fonts are served from `public/fonts/` (SIL Open Font License, included there), so nothing loads from Google or any other outside site. Client report packages use the TrendWise logo unless a different one is uploaded under Settings → Firm branding.
+The app uses the Trendwise Business Services brand: ink and warm-white surfaces, a gold accent, DM Serif Display headings and DM Sans text, near-square corners, and the TrendWise shield logo (`public/img/`). The sidebar and top bar are ink; the work area always stays light, whatever the computer's dark-mode setting. The fonts are served from `public/fonts/` (SIL Open Font License, included there), so nothing loads from Google or any other outside site. Client report packages use the TrendWise logo unless a different one is uploaded under Settings → Firm branding.
 
 ## Accounting design
 
