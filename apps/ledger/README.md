@@ -66,6 +66,10 @@ Run tests with `npm test`.
 | **GoHighLevel sync** | Per client: connect the GHL sub-account (Location ID + a read-only Private Integration key with `invoices.readonly` and `payments/transactions.readonly`). On each client's schedule (**daily overnight** by default, hourly, or manual only) or with **Sync now**, the ledger pulls new and changed **invoices** (products become Products & Services; discounts, tax, edits and voids carry over) and **payments** (applied to their invoice into Undeposited Funds; funnel or order payments become sales receipts; refunds recorded). A start date keeps earlier GHL activity out so opening A/R isn't double-counted. **Preview** shows exactly what a sync would do; anything it can't bring in is listed under *Needs attention*. Read-only on the GHL side, and outbound-only, so the server stays private |
 | **Users** | Admin / Accountant / Standard / Viewer roles |
 
+## Look and branding
+
+The app uses the Trendwise Business Services brand: ink and warm-white surfaces, a gold accent, DM Serif Display headings and DM Sans text, near-square corners, and the TrendWise shield logo (`public/img/`). The sidebar and top bar are ink; the work area always stays light, whatever the computer's dark-mode setting. The fonts are served from `public/fonts/` (SIL Open Font License, included there), so nothing loads from Google or any other outside site. Client report packages use the TrendWise logo unless a different one is uploaded under Settings → Firm branding.
+
 ## Accounting design
 
 - **Documents vs. ledger.** Every business document (`transactions` + `transaction_lines`) regenerates its own general-ledger postings (`journal_lines`) whenever it is saved. Posting rules live in one place — `buildJournal()` in `server/services/transactions.js` — and every posting is verified to balance before it is written.

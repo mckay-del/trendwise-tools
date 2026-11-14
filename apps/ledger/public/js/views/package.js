@@ -18,7 +18,7 @@ export async function setup(ctx) {
   ctx.el.innerHTML = html`<div class="page narrow">
     <div class="crumbs"><a href="${ctx.chref('reports')}">Reports</a> ›</div>
     <div class="page-head"><h1>Client report package</h1></div>
-    <p class="muted">Builds a branded, print-ready set of financial statements for <b>${ctx.company.name}</b>. Use your browser's <b>Save as PDF</b> to send it. Branding comes from Settings → Firm branding${firm.logo ? '' : raw(' <span class="badge badge-warn">no logo yet</span>')}.</p>
+    <p class="muted">Builds a branded, print-ready set of financial statements for <b>${ctx.company.name}</b>. Use your browser's <b>Save as PDF</b> to send it. Branding comes from Settings → Firm branding${firm.logo ? '' : ' (using the built-in Trendwise logo)'}.</p>
     <form class="card stack" data-form="pkg">
       <div class="form-grid">
         ${raw(field('Period', html`<select name="period" data-period>${raw(options(periods.map(([id, n]) => ({ id, name: n })), o.period, { blank: 'Custom dates' }))}</select>`))}
@@ -67,7 +67,7 @@ export async function print(ctx) {
   const c = ctx.company;
   document.title = `${c.name} — Financial statements ${to ?? ''}`;
   const periodText = from && to ? (from.slice(0, 7) === to.slice(0, 7) && from.endsWith('-01') ? `For the month ended ${longDate(to)}` : `For the period ${longDate(from)} through ${longDate(to)}`) : '';
-  const logo = firm.logo ? html`<img src="${firm.logo}" alt="${firm.name}" class="pkg-logo">` : html`<div class="pkg-logo-text">${firm.name}</div>`;
+  const logo = html`<img src="${firm.logo || '/img/trendwise-logo.png'}" alt="${firm.name}" class="pkg-logo">`;
   const pageHead = (title, sub) => html`<header class="pkg-head"><div>${raw(logo)}</div><div class="pkg-head-text"><div class="pkg-client">${c.legal_name ?? c.name}</div><h2>${title}</h2><div class="muted">${sub}</div></div></header>`;
   const pageFoot = html`<footer class="pkg-foot"><span>${firm.footer}</span><span>Prepared by ${firm.name}</span></footer>`;
 
