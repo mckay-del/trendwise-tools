@@ -1,6 +1,6 @@
 {
   "name": "trendwise-ledger",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Double-entry bookkeeping application (QBO-style) for Trendwise Business Services",
   "private": true,
   "type": "module",
