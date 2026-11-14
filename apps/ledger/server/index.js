@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { openDb, defaultDbPath, migrateLegacyDb } from './db.js';
 import { createHandler } from './app.js';
+import { runDue } from './services/recurring.js';
 
 const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const [major, minor] = process.versions.node.split('.').map(Number);
@@ -24,6 +25,16 @@ server.on('error', (e) => {
   else console.error(e);
   process.exit(1);
 });
+
+// Recurring transactions: create anything due now, then check every hour.
+function runRecurring() {
+  try {
+    const r = runDue(db);
+    if (r.created || r.errors) console.log(`Recurring transactions: ${r.created} created${r.errors ? `, ${r.errors} need attention` : ''}`);
+  } catch (e) { console.error('Recurring transactions failed:', e.message); }
+}
+runRecurring();
+setInterval(runRecurring, 60 * 60 * 1000).unref();
 
 server.listen(port, host, () => {
   const url = `http://${host === '0.0.0.0' ? '127.0.0.1' : host}:${port}`;

@@ -294,3 +294,60 @@ CREATE TABLE IF NOT EXISTS imports (
   user_id INTEGER REFERENCES users(id),
   at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Recurring transaction templates. template = JSON in the same shape the transaction form uses (amounts in cents).
+CREATE TABLE IF NOT EXISTS recurring (
+  id INTEGER PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  template TEXT NOT NULL,
+  frequency TEXT NOT NULL CHECK (frequency IN ('weekly','monthly','quarterly','yearly')),
+  interval_n INTEGER NOT NULL DEFAULT 1 CHECK (interval_n BETWEEN 1 AND 52),
+  day_of_month INTEGER,             -- monthly/quarterly/yearly: 1-31 (31 = last day of month)
+  next_date TEXT NOT NULL,
+  end_date TEXT,
+  mode TEXT NOT NULL DEFAULT 'auto' CHECK (mode IN ('auto','reminder')),
+  is_active INTEGER NOT NULL DEFAULT 1,
+  last_error TEXT,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE (company_id, name)
+);
+CREATE TABLE IF NOT EXISTS recurring_log (
+  id INTEGER PRIMARY KEY,
+  recurring_id INTEGER NOT NULL REFERENCES recurring(id) ON DELETE CASCADE,
+  scheduled_date TEXT NOT NULL,
+  transaction_id INTEGER REFERENCES transactions(id) ON DELETE SET NULL,
+  status TEXT NOT NULL CHECK (status IN ('created','skipped','error')),
+  message TEXT,
+  at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS ix_recurring_log ON recurring_log(recurring_id, scheduled_date);
+
+-- Files attached to transactions (receipts, bills, statements). Stored in the database so backups include them.
+CREATE TABLE IF NOT EXISTS attachments (
+  id INTEGER PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  transaction_id INTEGER NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+  file_name TEXT NOT NULL,
+  mime TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  sha256 TEXT NOT NULL,
+  data BLOB NOT NULL,
+  uploaded_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS ix_attachments_txn ON attachments(transaction_id);
+
+-- Month-end close checklist: manual sign-offs and notes per company per month (automatic checks are computed live).
+CREATE TABLE IF NOT EXISTS close_periods (
+  id INTEGER PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  period TEXT NOT NULL,              -- YYYY-MM
+  checks TEXT NOT NULL DEFAULT '{}', -- { key: { done: true, by: "name", at: "..." } }
+  notes TEXT,
+  closed_at TEXT,
+  closed_by INTEGER REFERENCES users(id),
+  UNIQUE (company_id, period)
+);

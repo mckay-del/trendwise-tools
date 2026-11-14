@@ -10,6 +10,7 @@ import * as reports from './views/reports.js';
 import * as settings from './views/settings.js';
 import * as pkg from './views/package.js';
 import * as importer from './views/import.js';
+import * as recurring from './views/recurring.js';
 
 const state = { user: null, meta: null, company: null, capi: null, companies: [] };
 
@@ -19,7 +20,7 @@ const NAV = [
   { href: 'sales', label: 'Sales', icon: '↗', children: [['sales', 'All sales'], ['invoices', 'Invoices'], ['customers', 'Customers'], ['items', 'Products & services']] },
   { href: 'expenses', label: 'Expenses', icon: '↘', children: [['expenses', 'Expenses'], ['bills', 'Bills'], ['vendors', 'Vendors']] },
   { href: 'reports', label: 'Reports', icon: '▤' },
-  { href: 'accounts', label: 'Accounting', icon: '≡', children: [['accounts', 'Chart of accounts'], ['transactions', 'All transactions'], ['reconcile', 'Reconcile'], ['import', 'Import from QuickBooks']] },
+  { href: 'accounts', label: 'Accounting', icon: '≡', children: [['accounts', 'Chart of accounts'], ['transactions', 'All transactions'], ['recurring', 'Recurring transactions'], ['reconcile', 'Reconcile'], ['import', 'Import from QuickBooks']] },
   { href: 'settings', label: 'Settings', icon: '⚙' },
 ];
 
@@ -57,6 +58,8 @@ const ROUTES = [
   ['c/:cid/reports/:name', reports.view],
   ['c/:cid/package', pkg.setup],
   ['c/:cid/import', importer.view],
+  ['c/:cid/recurring', recurring.list],
+  ['c/:cid/recurring/:id', forms.recurringEdit],
   ['c/:cid/package/print', pkg.print, { bare: true }],
   ['c/:cid/settings', settings.company],
   ['c/:cid/audit', settings.audit],

@@ -12,6 +12,7 @@ import * as reports from './services/reports.js';
 import { listAudit } from './services/audit.js';
 import * as saved from './services/saved.js';
 import * as qbo from './services/qboImport.js';
+import * as recur from './services/recurring.js';
 import { getFirm, saveFirm } from './services/firm.js';
 import { createBackup, lastBackup, decryptBackup, inspectImage } from './backup.js';
 import { readFileSync } from 'node:fs';
@@ -142,6 +143,18 @@ export function buildRouter(db) {
   r.put('/api/c/:cid/reconcile/:id', (ctx) => bank.saveClearedFlags(db, cid(ctx), id(ctx), ctx.body));
   r.post('/api/c/:cid/reconcile/:id/finish', (ctx) => bank.finishReconciliation(db, cid(ctx), id(ctx), ctx.body, uid(ctx)), { closeBooks: false });
   r.post('/api/c/:cid/reconcile/:id/undo', (ctx) => bank.undoLastReconciliation(db, cid(ctx), id(ctx), uid(ctx)), { closeBooks: true });
+
+  // --- Recurring transactions ---
+  r.get('/api/c/:cid/recurring', (ctx) => recur.listRecurring(db, cid(ctx)));
+  r.get('/api/c/:cid/recurring/due', (ctx) => recur.dueReminders(db, cid(ctx)));
+  r.get('/api/c/:cid/recurring/from/:id', (ctx) => recur.templateFromTransaction(db, cid(ctx), id(ctx)));
+  r.post('/api/c/:cid/recurring/run', (ctx) => recur.runDue(db, { companyId: cid(ctx) }));
+  r.get('/api/c/:cid/recurring/:id', (ctx) => recur.getRecurring(db, cid(ctx), id(ctx)));
+  r.post('/api/c/:cid/recurring', (ctx) => recur.saveRecurring(db, cid(ctx), ctx.body, null, uid(ctx)));
+  r.put('/api/c/:cid/recurring/:id', (ctx) => recur.saveRecurring(db, cid(ctx), ctx.body, id(ctx), uid(ctx)));
+  r.delete('/api/c/:cid/recurring/:id', (ctx) => recur.deleteRecurring(db, cid(ctx), id(ctx), uid(ctx)));
+  r.post('/api/c/:cid/recurring/:id/create', (ctx) => recur.createNow(db, cid(ctx), id(ctx), uid(ctx)));
+  r.post('/api/c/:cid/recurring/:id/skip', (ctx) => recur.skipNext(db, cid(ctx), id(ctx), uid(ctx)));
 
   // --- Saved reports ---
   r.get('/api/c/:cid/saved-reports', (ctx) => saved.listSaved(db, cid(ctx)));

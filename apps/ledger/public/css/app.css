@@ -426,3 +426,6 @@ details summary { cursor: pointer; }
 .restore-box { margin-top: 1.4rem; border-top: 1px solid var(--border); padding-top: 1rem; }
 .restore-box summary { cursor: pointer; }
 .restore-box form { margin-top: .8rem; }
+
+.block-link { display: block; text-decoration: none !important; }
+.is-template .schedule-fields { border-left: 4px solid var(--brand); }
