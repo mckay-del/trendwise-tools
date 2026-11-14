@@ -22,6 +22,7 @@ before(async () => {
     if (req.headers.authorization !== `Bearer ${TOKEN}`) return send(401, { message: 'Invalid JWT' });
     if (req.headers.version !== '2021-07-28') return send(400, { message: 'Version header missing' });
     if (url.searchParams.get('altId') !== LOC || url.searchParams.get('altType') !== 'location') return send(422, { message: 'altId/altType required' });
+    if (url.pathname === '/invoices/' && !url.searchParams.get('offset')) return send(422, { message: ['offset must be a string', 'offset should not be empty'] }); // real GHL requires it
     const limit = Number(url.searchParams.get('limit') ?? 10), offset = Number(url.searchParams.get('offset') ?? 0);
     if (url.pathname === '/invoices/') return send(200, { invoices: data.invoices.slice(offset, offset + limit), total: data.invoices.length });
     if (url.pathname === '/payments/transactions') return send(200, { data: data.payments.slice(offset, offset + limit), totalCount: data.payments.length });
