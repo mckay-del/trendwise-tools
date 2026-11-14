@@ -37,7 +37,7 @@ export async function transactions(ctx, { type, side, title }) {
       { key: 'type_label', label: 'Type' },
       { key: 'number', label: 'No.' },
       { key: 'payee', label: 'Name', render: (t) => esc(t.payee ?? (t.type === 'transfer' ? `${t.account_name} → ${t.to_account_name}` : '')) },
-      { key: 'memo', label: 'Memo', cls: 'clip' },
+      { key: 'memo', label: 'Memo', cls: 'clip', render: (t) => html`${t.attachment_count ? raw(html`<span title="${t.attachment_count} attachment${t.attachment_count > 1 ? 's' : ''}">📎</span> `) : ''}${t.memo ?? ''}` },
       { key: 'due_date', label: 'Due', type: 'date' },
       { key: 'balance', label: 'Balance', type: 'money', render: (t) => (t.type === 'invoice' || t.type === 'bill' || t.balance ? esc(money(t.balance)) : '') },
       { key: 'total', label: 'Total', type: 'money' },

@@ -43,7 +43,8 @@ const LIST_SQL = `
          (SELECT COALESCE(SUM(x.amount),0) FROM applications x WHERE x.target_txn_id = t.id) AS applied_to,
          (SELECT COALESCE(SUM(x.amount),0) FROM applications x WHERE x.source_txn_id = t.id) AS applied_from,
          (SELECT dl.transaction_id FROM transaction_lines dl JOIN transactions d ON d.id = dl.transaction_id
-            WHERE dl.linked_txn_id = t.id AND d.status = 'posted' LIMIT 1) AS deposit_id
+            WHERE dl.linked_txn_id = t.id AND d.status = 'posted' LIMIT 1) AS deposit_id,
+         (SELECT COUNT(*) FROM attachments f WHERE f.transaction_id = t.id) AS attachment_count
   FROM transactions t
   LEFT JOIN customers c ON c.id = t.customer_id
   LEFT JOIN vendors v ON v.id = t.vendor_id
@@ -112,6 +113,7 @@ export function getTransaction(db, companyId, id) {
     WHERE l.transaction_id = ? ORDER BY l.line_no`, id);
   out.applications = db.all(`SELECT x.*, t.type, t.number, t.date, t.total FROM applications x JOIN transactions t ON t.id = x.target_txn_id WHERE x.source_txn_id = ? ORDER BY t.date`, id);
   out.applied_by = db.all(`SELECT x.*, t.type, t.number, t.date FROM applications x JOIN transactions t ON t.id = x.source_txn_id WHERE x.target_txn_id = ? ORDER BY t.date`, id);
+  out.attachments = db.all('SELECT id, file_name, mime, size, created_at FROM attachments WHERE transaction_id = ? ORDER BY id', id);
   out.journal = db.all(`SELECT j.*, a.name AS account_name, a.number AS account_number FROM journal_lines j JOIN accounts a ON a.id = j.account_id WHERE j.transaction_id = ? ORDER BY j.id`, id);
   return out;
 }

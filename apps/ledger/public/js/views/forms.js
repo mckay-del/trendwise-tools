@@ -1,4 +1,4 @@
-import { html, raw, esc, money, num, parseMoney, fmtDate, today, addDays, on, $, $$, options, field, toast, modal, confirmDialog, badge, dataTable } from '../ui.js';
+import { html, raw, esc, money, num, parseMoney, fmtDate, today, addDays, on, $, $$, options, field, toast, modal, confirmDialog, badge, dataTable, fileToBase64 } from '../ui.js';
 import { editParty, partyOptions as sharedPartyOptions, wireQuickAdd } from './lists.js';
 
 const ITEM_TYPES = ['invoice', 'sales_receipt', 'credit_memo'];
@@ -91,6 +91,7 @@ export async function view(ctx, T = null) {
       <div class="form-grid">${raw(field(type === 'invoice' ? 'Message on invoice' : 'Memo', html`<textarea name="memo" rows="2">${t.memo ?? ''}</textarea>`, { cls: 'span-2' }))}</div>
       <div class="totals" data-section="totals"></div>
     </section>
+    ${T ? '' : raw('<section class="card" data-section="attachments"></section>')}
     <div class="form-error" hidden></div>
     ${T ? raw(html`<div class="action-bar">
       <a class="btn btn-ghost" href="${ctx.chref('recurring')}">Cancel</a>
@@ -120,7 +121,48 @@ export async function view(ctx, T = null) {
   if (APPLY[type]) await renderApply(S);
   if (type === 'deposit' && !T) await renderDeposit(S);
   recalc(S);
+  S.pending = [];
+  if (!T) renderAttachments(S);
   wire(S);
+}
+
+// --- Attachments ------------------------------------------------------------
+
+const fmtSize = (n) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
+const fileIcon = (mime = '', name = '') => (mime.startsWith('image/') || /\.(jpe?g|png|gif|webp|heic)$/i.test(name) ? '🖼' : mime === 'application/pdf' || /\.pdf$/i.test(name) ? '📄' : '📎');
+
+function renderAttachments(S) {
+  const host = $('[data-section=attachments]', S.form);
+  if (!host) return;
+  const saved = S.t.attachments ?? [];
+  const url = (a, dl) => S.ctx.capi.url(`/attachments/${a.id}`, dl ? { download: '1' } : {});
+  host.innerHTML = html`<h3>Attachments <small>receipts, bills, statements · PDF, photos, Excel, Word or CSV · up to 10 MB each</small></h3>
+    ${saved.length || S.pending.length ? raw(html`<ul class="attach-list">
+      ${raw(saved.map((a) => html`<li><span class="ai">${fileIcon(a.mime, a.file_name)}</span><a href="${url(a)}" target="_blank" rel="noopener">${a.file_name}</a><small class="muted">${fmtSize(a.size)}</small><span class="spacer"></span><a class="link" href="${url(a, true)}">Download</a><button type="button" class="link danger" data-detach="${a.id}">Remove</button></li>`).join(''))}
+      ${raw(S.pending.map((f, i) => html`<li class="pending"><span class="ai">${fileIcon(f.type, f.name)}</span><span>${f.name}</span><small class="muted">${fmtSize(f.size)} · attached when you save</small><span class="spacer"></span><button type="button" class="link danger" data-unpend="${i}">Remove</button></li>`).join(''))}
+    </ul>`) : ''}
+    <label class="dropzone" data-drop><input type="file" multiple data-attach-input accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.heic,.xlsx,.docx,.csv,.txt,application/pdf,image/*"><span>Drag files here or <u>browse</u></span></label>`;
+}
+
+async function attachFiles(S, fileList) {
+  const list = [...fileList];
+  if (!list.length) return;
+  if (S.isNew) { S.pending.push(...list); renderAttachments(S); return; }
+  for (const f of list) {
+    try { await S.ctx.capi.post(`/transactions/${S.t.id}/attachments`, { file_name: f.name, data_base64: await fileToBase64(f) }); }
+    catch (ex) { toast(ex.message, 'error'); }
+  }
+  S.t.attachments = await S.ctx.capi.get(`/transactions/${S.t.id}/attachments`);
+  renderAttachments(S);
+  toast(list.length === 1 ? `Attached ${list[0].name}` : `Attached ${list.length} files`);
+}
+
+/** Upload files chosen before a new transaction was saved. */
+async function uploadPending(S, txnId) {
+  for (const f of S.pending) {
+    try { await S.ctx.capi.post(`/transactions/${txnId}/attachments`, { file_name: f.name, data_base64: await fileToBase64(f) }); }
+    catch (ex) { toast(`${f.name}: ${ex.message}`, 'error'); }
+  }
 }
 
 function defaults(ctx, type, L) {
@@ -467,7 +509,8 @@ function wire(S) {
         return;
       }
       const saved = S.isNew ? await ctx.capi.post('/transactions', body) : await ctx.capi.put(`/transactions/${S.t.id}`, { ...body, expected_updated_at: S.t.updated_at });
-      toast(`${ctx.meta.txn_types[type].label} ${saved.number ?? ''} saved`);
+      if (S.isNew && S.pending.length) await uploadPending(S, saved.id);
+      toast(`${ctx.meta.txn_types[type].label} ${saved.number ?? ''} saved${S.isNew && S.pending.length ? ` with ${S.pending.length} attachment${S.pending.length > 1 ? 's' : ''}` : ''}`);
       if (saveMode === 'new') { if (S.isNew) ctx.reload(); else ctx.navigate(ctx.cpath('new/' + type)); }
       else if (history.length > 1 && S.isNew && ctx.query.apply) history.back();
       else ctx.navigate(ctx.cpath(BACK[type]));
@@ -477,6 +520,16 @@ function wire(S) {
     } finally { $$('.action-bar button', form).forEach((b) => { b.disabled = false; }); }
   });
 
+  on(form, 'change', '[data-attach-input]', (e, inp) => { attachFiles(S, inp.files); inp.value = ''; });
+  on(form, 'dragover', '[data-drop]', (e, z) => { e.preventDefault(); z.classList.add('over'); });
+  on(form, 'dragleave', '[data-drop]', (e, z) => z.classList.remove('over'));
+  on(form, 'drop', '[data-drop]', (e, z) => { e.preventDefault(); z.classList.remove('over'); attachFiles(S, e.dataTransfer.files); });
+  on(form, 'click', '[data-unpend]', (e, b) => { S.pending.splice(Number(b.dataset.unpend), 1); renderAttachments(S); });
+  on(form, 'click', '[data-detach]', async (e, b) => {
+    const a = (S.t.attachments ?? []).find((x) => String(x.id) === b.dataset.detach);
+    if (!(await confirmDialog(`Remove ${a?.file_name ?? 'this file'}?`, { okLabel: 'Remove' }))) return;
+    try { await ctx.capi.del(`/attachments/${b.dataset.detach}`); S.t.attachments = S.t.attachments.filter((x) => x !== a); renderAttachments(S); } catch (ex) { toast(ex.message, 'error'); }
+  });
   on(form, 'click', '[data-action=delete-template]', async () => {
     if (!(await confirmDialog('Delete this recurring template? Transactions it already created are kept.', { okLabel: 'Delete template' }))) return;
     try { await ctx.capi.del(`/recurring/${S.template.rec.id}`); toast('Template deleted'); ctx.navigate(ctx.cpath('recurring')); } catch (ex) { toast(ex.message, 'error'); }

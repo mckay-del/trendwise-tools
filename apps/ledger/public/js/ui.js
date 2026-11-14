@@ -165,3 +165,11 @@ export async function readUploadFile(file) {
 
 /** "2026-11-13 04:33:32" (UTC from SQLite) → local "11/13/2026" */
 export const fmtStamp = (s) => (s ? new Date(s.replace(' ', 'T') + 'Z').toLocaleDateString() : '');
+
+/** Any file → base64 (for JSON uploads). */
+export async function fileToBase64(file) {
+  const buf = new Uint8Array(await file.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
