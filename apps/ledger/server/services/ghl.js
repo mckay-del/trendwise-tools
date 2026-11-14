@@ -102,7 +102,7 @@ export async function testConnection(db, companyId) {
   if (!conn) throw notFound('GHL connection');
   const out = {};
   for (const [key, path, q, list] of [['invoices', '/invoices/', locQuery(conn), 'invoices'], ['payments', '/payments/transactions', { ...locQuery(conn), locationId: conn.location_id }, 'data']]) {
-    try { const b = await ghl(conn, path, { ...q, limit: 1 }); out[key] = { ok: true, total: b.total ?? b.totalCount ?? (b[list]?.length ?? 0) }; }
+    try { const b = await ghl(conn, path, { ...q, limit: 1, offset: 0 }); out[key] = { ok: true, total: b.total ?? b.totalCount ?? (b[list]?.length ?? 0) }; }
     catch (e) { out[key] = { ok: false, error: e.message }; }
   }
   return out;
