@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { bad, notFound, toCents, requireDate, str, intOrNull, fmtMoney, daysBetween } from '../util.js';
 import { getAccount, signed, ACCOUNT_TYPES } from './accounts.js';
-import { createTransaction, deleteTransaction, TXN_TYPES } from './transactions.js';
+import { createTransaction, deleteTransaction, undepositedFunds, TXN_TYPES } from './transactions.js';
 import { audit } from './audit.js';
 import { parseCsv, readUpload, findHeader, toIsoDate } from './tabular.js';
 
@@ -244,7 +244,49 @@ export function findMatches(db, companyId, acct, feed) {
     WHERE j.account_id = ? AND j.cleared = '' AND (j.debit - j.credit) = ? AND j.date BETWEEN date(?, '-14 days') AND date(?, '+14 days')
       AND NOT EXISTS (SELECT 1 FROM bank_feed f WHERE f.txn_id = j.transaction_id AND f.status = 'matched')
     ORDER BY ABS(julianday(j.date) - julianday(?)) LIMIT 5`, acct.id, feed.amount, feed.date, feed.date, feed.date);
-  return candidates.map((c) => ({ ...c, type_label: TXN_TYPES[c.type]?.label, days_apart: Math.abs(daysBetween(c.date, feed.date)) }));
+  const out = candidates.map((c) => ({ ...c, type_label: TXN_TYPES[c.type]?.label, days_apart: Math.abs(daysBetween(c.date, feed.date)) }));
+  // Money into a bank account can also match a payment still waiting in Undeposited Funds (wires, checks,
+  // payments synced from GHL). Matching then creates the bank deposit for it.
+  if (feed.amount > 0 && acct.type === 'bank') {
+    for (const p of undepositedFunds(db, companyId)) {
+      if (p.total !== feed.amount) continue;
+      const days = Math.abs(daysBetween(p.date, feed.date));
+      if (days > 14) continue;
+      out.push({ transaction_id: p.id, date: p.date, type: p.type, number: p.number, payee: p.customer_name || null, memo: p.memo, type_label: `${TXN_TYPES[p.type].label} (undeposited)`, days_apart: days, undeposited: true });
+    }
+    out.sort((a, b) => a.days_apart - b.days_apart);
+  }
+  return out.slice(0, 5);
+}
+
+/** Payments and sales receipts waiting in Undeposited Funds, for the "From payments" deposit on a bank line. */
+export function depositCandidates(db, companyId, feedId) {
+  const f = getFeedRow(db, companyId, feedId);
+  return undepositedFunds(db, companyId)
+    .map((p) => ({ id: p.id, type: p.type, type_label: TXN_TYPES[p.type].label, number: p.number, date: p.date, customer_name: p.customer_name, total: p.total, memo: p.memo, days_before: daysBetween(p.date, f.date) }))
+    .sort((a, b) => Math.abs(a.days_before) - Math.abs(b.days_before));
+}
+
+/** Create the bank deposit for a money-in bank line from waiting payments; any shortfall is the processor fee. */
+function addFromPayments(db, companyId, f, acct, body, userId) {
+  if (acct.type !== 'bank' || f.amount <= 0) throw bad('Payments can only be deposited from money coming into a bank account');
+  const ids = [...new Set(body.payment_ids.map(Number).filter(Boolean))];
+  if (!ids.length) throw bad('Tick the payments included in this deposit');
+  const waiting = new Map(undepositedFunds(db, companyId).map((p) => [p.id, p]));
+  const chosen = ids.map((id) => waiting.get(id));
+  if (chosen.some((p) => !p)) throw bad('One of those payments is no longer waiting to be deposited. Refresh and try again.');
+  const total = chosen.reduce((s, p) => s + p.total, 0);
+  const fee = total - f.amount;
+  if (fee < 0) throw bad(`The bank received ${fmtMoney(f.amount)}, which is more than the ${fmtMoney(total)} of payments ticked. Tick the rest of the payments, or use Add for the difference.`);
+  const lines = chosen.map((p) => ({ linked_txn_id: p.id }));
+  if (fee > 0) {
+    const feeAcct = getAccount(db, companyId, intOrNull(body.fee_account_id) ?? 0);
+    lines.push({ account_id: feeAcct.id, amount: -fee / 100, description: str(body.fee_description, 200) ?? 'Payment processing fees' });
+  }
+  const dep = createTransaction(db, companyId, { type: 'deposit', date: f.date, account_id: acct.id, memo: f.description, lines }, userId);
+  markCleared(db, dep.id, acct.id, f.amount);
+  db.run("UPDATE bank_feed SET status='added', txn_id=? WHERE id=?", dep.id, f.id);
+  return { feed_id: f.id, transaction: dep, fee };
 }
 
 function getFeedRow(db, companyId, id) {
@@ -266,6 +308,7 @@ export function addFromFeed(db, companyId, id, body, userId) {
     if (f.status !== 'review') throw bad('This transaction has already been handled');
     const acct = getAccount(db, companyId, f.account_id);
     if (Array.isArray(body.splits) && body.splits.length) return addSplit(db, companyId, f, acct, body, userId);
+    if (Array.isArray(body.payment_ids)) return addFromPayments(db, companyId, f, acct, body, userId);
     const categoryId = intOrNull(body.account_id) ?? f.suggested_account_id;
     if (!categoryId) throw bad('Choose a category');
     const cat = getAccount(db, companyId, categoryId);
@@ -346,6 +389,14 @@ export function matchFeed(db, companyId, id, { transaction_id }, userId) {
     const txnId = intOrNull(transaction_id);
     const t = db.get('SELECT * FROM transactions WHERE id = ? AND company_id = ?', txnId, companyId);
     if (!t) throw notFound('Transaction');
+    // A payment still in Undeposited Funds: create its bank deposit, dated the day the money arrived.
+    const waiting = f.amount > 0 && undepositedFunds(db, companyId).find((p) => p.id === t.id);
+    if (waiting) {
+      if (waiting.total !== f.amount) throw bad(`That payment is ${fmtMoney(waiting.total)} but the bank received ${fmtMoney(f.amount)}. Use "From payments" to include a fee or more payments.`);
+      const r = addFromPayments(db, companyId, f, getAccount(db, companyId, f.account_id), { payment_ids: [t.id] }, userId);
+      audit(db, { companyId, userId, action: 'match', entity: 'bank_feed', entityId: f.id, summary: `${f.description} ${fmtMoney(f.amount)} deposited ${TXN_TYPES[t.type].label} ${t.number ?? ''}` });
+      return { ok: true, deposit_id: r.transaction.id };
+    }
     if (!markCleared(db, t.id, f.account_id, f.amount)) throw bad(`That transaction doesn't have an uncleared ${fmtMoney(Math.abs(f.amount))} line in this account`);
     db.run("UPDATE bank_feed SET status='matched', txn_id=? WHERE id=?", t.id, f.id);
     audit(db, { companyId, userId, action: 'match', entity: 'bank_feed', entityId: f.id, summary: `${f.description} ${fmtMoney(f.amount)} matched to ${TXN_TYPES[t.type].label} ${t.number ?? ''}` });
