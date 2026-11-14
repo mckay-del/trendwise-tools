@@ -18,11 +18,12 @@ function barChart(months) {
 
 export async function view(ctx) {
   ctx.setTitle('Dashboard');
-  const d = await ctx.capi.get('/dashboard');
+  const [d, due] = await Promise.all([ctx.capi.get('/dashboard'), ctx.capi.get('/recurring/due').catch(() => [])]);
   const h = ctx.chref;
   const maxExp = Math.max(1, ...d.top_expenses.map((e) => e.amt));
   ctx.el.innerHTML = html`<div class="page">
     <div class="page-head"><h1>${ctx.company.name}</h1><span class="muted">Fiscal year to date since ${fmtDate(d.fiscal_year_start)}</span></div>
+    ${due.length ? raw(html`<a class="banner banner-warn block-link" href="${ctx.chref('recurring')}">${due.length} recurring transaction${due.length > 1 ? 's are' : ' is'} waiting for you: ${due.map((r) => r.name).slice(0, 3).join(', ')}${due.length > 3 ? '…' : ''} →</a>`) : ''}
     <div class="cards">
       <section class="card">
         <h3>Profit &amp; loss <small>year to date</small></h3>

@@ -35,6 +35,7 @@ In a **`TrendwiseLedger`** folder in your user folder (for example `C:\Users\you
 | `LEDGER_DATA_DIR` | `~/TrendwiseLedger` | Folder for the database and command-line backups |
 | `LEDGER_DB` | `<data dir>/ledger.db` | Exact database file (overrides the folder) |
 | `NODE_ENV=production` | — | Adds `Secure` to the session cookie (serve behind HTTPS) |
+| `LEDGER_TZ` | `America/Los_Angeles` | Time zone used to decide when recurring transactions are due |
 | `LEDGER_ADMIN_EMAIL` / `LEDGER_ADMIN_PASSWORD` | `admin@example.com` / random | Used by `seed:demo` only when no users exist |
 
 Run tests with `npm test`.
@@ -57,6 +58,10 @@ Run tests with `npm test`.
 | **Saved reports** | Save any customization by name and rerun it in one click. Relative periods (“Last month”, “This fiscal year to date”, …) are stored as the period, so a saved report stays current |
 | **Client report package** | Firm-branded, print-ready statements (cover page with your note, P&L, Balance Sheet, optional GL and A/R / A/P aging), each on its own page with repeating headers and your disclaimer footer. Print or **Save as PDF** from the browser |
 | **Backups** | Settings → *Download encrypted backup* (AES-256-GCM, passphrase-derived key). Command line: `npm run backup` / `npm run restore` |
+| **Recurring transactions** | Invoices, sales receipts, bills, expenses, checks, deposits, transfers and journal entries on weekly / monthly / quarterly / yearly schedules (every N, a set day or the last day of the month, optional end date). **Automatic** templates are created on their date (checked hourly, catching up if the server was off); **reminders** wait on the Recurring page and dashboard for Create / Skip. Make recurring from any saved transaction; edit templates on the normal form |
+| **Split bank lines** | On Banking › For review, split one bank line across several categories (loan principal + interest, a store run split between supplies and meals); it saves only when the lines add up to the bank amount |
+| **Attachments** | Attach receipts, bills and statements (PDF, JPG/PNG/HEIC photos, Excel, Word, CSV; 10 MB each) to any transaction by browsing or drag-and-drop. Types are verified from file content; stored in the database so backups include them; 📎 shown in lists |
+| **Month-end close** | Per-client, per-month checklist. **Automatic checks:** bank and cards reconciled through month end, nothing left For review, Uncategorized cleared, Undeposited Funds, negative bank balances, Opening Balance Equity. **Sign-offs:** P&L, Balance Sheet and A/R & A/P reviewed, filings done, package sent, plus notes. **Close the month** sets the closing date, and **Reopen** restores the previous one. The Companies page shows each client's close status |
 | **Users** | Admin / Accountant / Standard / Viewer roles |
 
 ## Accounting design
@@ -127,4 +132,4 @@ apps/ledger/
 
 ## Known gaps / next steps
 
-Inventory (quantity on hand / FIFO), payroll, estimates & purchase orders, recurring transactions, emailing invoices, live bank connections (Plaid), classes/locations, budgets, multi-currency, attachments, and per-company user access are not yet built. Cash basis applies to the P&L only. PDFs are produced with the browser's “Save as PDF” rather than generated on the server.
+Inventory (quantity on hand / FIFO), payroll, estimates & purchase orders, emailing invoices, live bank connections (Plaid), classes/locations, budgets, multi-currency, and per-company user access are not yet built. Cash basis applies to the P&L only. PDFs are produced with the browser's “Save as PDF” rather than generated on the server.

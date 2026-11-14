@@ -102,7 +102,7 @@ export function modal({ title, body, submitLabel = 'Save', onSubmit, onClose, wi
 export function confirmDialog(message, { title = 'Are you sure?', okLabel = 'OK', danger = true } = {}) {
   return new Promise((resolve) => {
     let ok = false;
-    const m = modal({ title, body: html`<p>${message}</p>`, submitLabel: okLabel, danger, onSubmit: () => { ok = true; } });
+    const m = modal({ title, body: html`<p class="pre">${message}</p>`, submitLabel: okLabel, danger, onSubmit: () => { ok = true; } });
     const obs = new MutationObserver(() => { if (!document.body.contains(m.el)) { obs.disconnect(); resolve(ok); } });
     obs.observe(document.body, { childList: true });
   });
@@ -165,3 +165,11 @@ export async function readUploadFile(file) {
 
 /** "2026-11-13 04:33:32" (UTC from SQLite) → local "11/13/2026" */
 export const fmtStamp = (s) => (s ? new Date(s.replace(' ', 'T') + 'Z').toLocaleDateString() : '');
+
+/** Any file → base64 (for JSON uploads). */
+export async function fileToBase64(file) {
+  const buf = new Uint8Array(await file.arrayBuffer());
+  let bin = '';
+  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+  return btoa(bin);
+}

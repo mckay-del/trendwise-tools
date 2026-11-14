@@ -12,6 +12,9 @@ import * as reports from './services/reports.js';
 import { listAudit } from './services/audit.js';
 import * as saved from './services/saved.js';
 import * as qbo from './services/qboImport.js';
+import * as recur from './services/recurring.js';
+import * as files from './services/attachments.js';
+import * as closing from './services/close.js';
 import { getFirm, saveFirm } from './services/firm.js';
 import { createBackup, lastBackup, decryptBackup, inspectImage } from './backup.js';
 import { readFileSync } from 'node:fs';
@@ -49,7 +52,7 @@ export function buildRouter(db) {
     db.replaceWith(image);
     db.run('DELETE FROM sessions'); // sign-ins from the old computer don't carry over
     return { ok: true, ...info };
-  }, { public: true });
+  }, { public: true, maxBody: 300 * 1024 * 1024 });
   r.post('/api/auth/login', (ctx) => { const s = auth.login(db, ctx.body, ctx.ip); ctx.setSession(s); return { user: s.user }; }, { public: true });
   r.post('/api/auth/logout', (ctx) => { auth.logout(db, ctx.token); ctx.clearSession(); return { ok: true }; }, { public: true });
 
@@ -143,6 +146,34 @@ export function buildRouter(db) {
   r.post('/api/c/:cid/reconcile/:id/finish', (ctx) => bank.finishReconciliation(db, cid(ctx), id(ctx), ctx.body, uid(ctx)), { closeBooks: false });
   r.post('/api/c/:cid/reconcile/:id/undo', (ctx) => bank.undoLastReconciliation(db, cid(ctx), id(ctx), uid(ctx)), { closeBooks: true });
 
+  // --- Month-end close ---
+  r.get('/api/close-overview', () => closing.closeOverview(db));
+  r.get('/api/c/:cid/close', (ctx) => { const c = company(ctx); return closing.closeStatus(db, c, ctx.query.period || closing.defaultPeriod(c)); });
+  r.put('/api/c/:cid/close/:period', (ctx) => closing.saveCloseChecks(db, company(ctx), ctx.params.period, ctx.body, ctx.user));
+  r.post('/api/c/:cid/close/:period/close', (ctx) => closing.closePeriod(db, company(ctx), ctx.params.period, ctx.body, ctx.user), { closeBooks: true });
+  r.post('/api/c/:cid/close/:period/reopen', (ctx) => closing.reopenPeriod(db, company(ctx), ctx.params.period, ctx.user), { closeBooks: true });
+
+  // --- Attachments ---
+  r.get('/api/c/:cid/transactions/:id/attachments', (ctx) => files.listAttachments(db, cid(ctx), id(ctx)));
+  r.post('/api/c/:cid/transactions/:id/attachments', (ctx) => files.addAttachment(db, cid(ctx), id(ctx), ctx.body, uid(ctx)));
+  r.get('/api/c/:cid/attachments/:id', (ctx) => {
+    const f = files.getAttachmentFile(db, cid(ctx), id(ctx));
+    return { __raw: f.data, type: f.mime, filename: f.file_name, inline: f.inline && ctx.query.download !== '1', untrusted: true };
+  });
+  r.delete('/api/c/:cid/attachments/:id', (ctx) => files.deleteAttachment(db, cid(ctx), id(ctx), uid(ctx)));
+
+  // --- Recurring transactions ---
+  r.get('/api/c/:cid/recurring', (ctx) => recur.listRecurring(db, cid(ctx)));
+  r.get('/api/c/:cid/recurring/due', (ctx) => recur.dueReminders(db, cid(ctx)));
+  r.get('/api/c/:cid/recurring/from/:id', (ctx) => recur.templateFromTransaction(db, cid(ctx), id(ctx)));
+  r.post('/api/c/:cid/recurring/run', (ctx) => recur.runDue(db, { companyId: cid(ctx) }));
+  r.get('/api/c/:cid/recurring/:id', (ctx) => recur.getRecurring(db, cid(ctx), id(ctx)));
+  r.post('/api/c/:cid/recurring', (ctx) => recur.saveRecurring(db, cid(ctx), ctx.body, null, uid(ctx)));
+  r.put('/api/c/:cid/recurring/:id', (ctx) => recur.saveRecurring(db, cid(ctx), ctx.body, id(ctx), uid(ctx)));
+  r.delete('/api/c/:cid/recurring/:id', (ctx) => recur.deleteRecurring(db, cid(ctx), id(ctx), uid(ctx)));
+  r.post('/api/c/:cid/recurring/:id/create', (ctx) => recur.createNow(db, cid(ctx), id(ctx), uid(ctx)));
+  r.post('/api/c/:cid/recurring/:id/skip', (ctx) => recur.skipNext(db, cid(ctx), id(ctx), uid(ctx)));
+
   // --- Saved reports ---
   r.get('/api/c/:cid/saved-reports', (ctx) => saved.listSaved(db, cid(ctx)));
   r.post('/api/c/:cid/saved-reports', (ctx) => saved.saveReport(db, cid(ctx), ctx.body, null, uid(ctx)));
@@ -204,7 +235,7 @@ export function createHandler(db, { secureCookies = process.env.NODE_ENV === 'pr
       if (mutating) {
         // CSRF defense: browsers won't send this custom header cross-site without a CORS preflight we never grant.
         if (req.headers['x-requested-with'] !== 'ledger') throw forbidden('Missing request header');
-        ctx.body = await readJson(req);
+        ctx.body = await readJson(req, opts.maxBody ?? MAX_BODY);
       }
       if (!opts.public && !ctx.user) throw new AppError(401, 'Please sign in');
       if (opts.admin && !auth.can.admin(ctx.user)) throw forbidden('Admins only');
@@ -212,7 +243,15 @@ export function createHandler(db, { secureCookies = process.env.NODE_ENV === 'pr
       if (mutating && !opts.public && !auth.can.write(ctx.user)) throw forbidden('Your role is read-only');
       const result = await fn(ctx);
       const headers = setCookies.length ? { 'Set-Cookie': setCookies } : {};
-      if (result && result.__raw !== undefined) return send(200, result.__raw, { 'Content-Type': result.type, 'Content-Disposition': `attachment; filename="${result.filename}"`, ...headers });
+      if (result && result.__raw !== undefined) {
+        const ascii = String(result.filename).replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
+        const disposition = `${result.inline ? 'inline' : 'attachment'}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(result.filename)}`;
+        // User-supplied files: never let the browser treat them as part of the app.
+        // (Types are verified from the file bytes and nosniff is set globally; PDFs get no CSP so the browser's PDF viewer works.)
+        const extra = !result.untrusted ? {} : result.type === 'application/pdf' ? { 'Content-Security-Policy': "frame-ancestors 'self'", 'Cross-Origin-Resource-Policy': 'same-origin' }
+          : { 'Content-Security-Policy': "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox", 'Cross-Origin-Resource-Policy': 'same-origin' };
+        return send(200, result.__raw, { 'Content-Type': result.type, 'Content-Disposition': disposition, ...extra, ...headers });
+      }
       return json(200, result ?? { ok: true }, headers);
     } catch (e) {
       const headers = setCookies.length ? { 'Set-Cookie': setCookies } : {};
@@ -225,11 +264,11 @@ export function createHandler(db, { secureCookies = process.env.NODE_ENV === 'pr
   };
 }
 
-function readJson(req) {
+function readJson(req, limit = MAX_BODY) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
-    req.on('data', (c) => { size += c.length; if (size > MAX_BODY) { reject(new AppError(413, 'Request too large')); req.destroy(); } else chunks.push(c); });
+    req.on('data', (c) => { size += c.length; if (size > limit) { reject(new AppError(413, 'Request too large')); req.destroy(); } else chunks.push(c); });
     req.on('end', () => {
       if (!chunks.length) return resolve({});
       try { const v = JSON.parse(Buffer.concat(chunks).toString('utf8')); resolve(v && typeof v === 'object' ? v : {}); }

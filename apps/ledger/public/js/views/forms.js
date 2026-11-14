@@ -1,4 +1,4 @@
-import { html, raw, esc, money, num, parseMoney, fmtDate, today, addDays, on, $, $$, options, field, toast, modal, confirmDialog, badge, dataTable } from '../ui.js';
+import { html, raw, esc, money, num, parseMoney, fmtDate, today, addDays, on, $, $$, options, field, toast, modal, confirmDialog, badge, dataTable, fileToBase64 } from '../ui.js';
 import { editParty, partyOptions as sharedPartyOptions, wireQuickAdd } from './lists.js';
 
 const ITEM_TYPES = ['invoice', 'sales_receipt', 'credit_memo'];
@@ -19,30 +19,69 @@ const acctLabel = (a) => `${a.number ? a.number + ' ' : ''}${a.name}`;
 const acctOptions = (accounts, sel, types, blank = 'Choose an account') => options(types ? accounts.filter((a) => types.includes(a.type)) : accounts, sel, { blank, label: acctLabel, group: (a) => a.type_label });
 const partyOptions = (list, sel, label) => sharedPartyOptions(list, sel, label === 'customer' ? 'customers' : 'vendors', `Choose a ${label}`);
 
-export async function view(ctx) {
+const RECURRING_TYPES = ['invoice', 'sales_receipt', 'bill', 'expense', 'check', 'deposit', 'transfer', 'journal_entry'];
+
+/**
+ * Recurring template editor: the normal transaction form plus a Schedule box.
+ * Routes: recurring/:id (edit), recurring/new?from=<txn id> (make recurring), recurring/new?type=<type>.
+ */
+export async function recurringEdit(ctx) {
   const capi = ctx.capi;
-  const isNew = !!ctx.params.type;
-  const txn = isNew ? null : await capi.get(`/transactions/${ctx.params.id}`);
-  const type = isNew ? ctx.params.type : txn.type;
+  let T;
+  if (ctx.params.id && ctx.params.id !== 'new') {
+    const rec = await capi.get(`/recurring/${ctx.params.id}`);
+    T = { rec, type: rec.type, t: { ...rec.template_view, type: rec.type, date: rec.next_date }, schedule: rec };
+  } else if (ctx.query.from) {
+    const f = await capi.get(`/recurring/from/${ctx.query.from}`);
+    T = { rec: null, type: f.type, t: { ...f.template_view, type: f.type, date: f.next_date }, schedule: { name: f.suggested_name, frequency: 'monthly', interval_n: 1, day_of_month: f.day_of_month, mode: 'auto' } };
+  } else {
+    const type = RECURRING_TYPES.includes(ctx.query.type) ? ctx.query.type : 'expense';
+    T = { rec: null, type, t: null, schedule: { name: '', frequency: 'monthly', interval_n: 1, mode: 'auto' } };
+  }
+  return view(ctx, T);
+}
+
+function scheduleCard(s) {
+  const dom = s.day_of_month ?? '';
+  const days = [...Array.from({ length: 28 }, (_, i) => ({ id: i + 1, name: String(i + 1) })), { id: 29, name: '29' }, { id: 30, name: '30' }, { id: 31, name: 'Last day of month' }];
+  return html`<section class="card schedule-fields"><h3>Schedule</h3><div class="form-grid cols-4">
+    ${raw(field('Template name', html`<input name="sched_name" required value="${s.name ?? ''}" placeholder="e.g. Office rent">`, { cls: 'span-2' }))}
+    ${raw(field('Repeats', html`<select name="sched_frequency" data-freq>${raw(options([{ id: 'weekly', name: 'Weekly' }, { id: 'monthly', name: 'Monthly' }, { id: 'quarterly', name: 'Quarterly' }, { id: 'yearly', name: 'Yearly' }], s.frequency ?? 'monthly'))}</select>`))}
+    ${raw(field('Every', html`<input name="sched_interval" type="number" min="1" max="52" value="${s.interval_n ?? 1}">`, { hint: 'e.g. 2 = every other' }))}
+    ${raw(field('On day', html`<select name="sched_dom" data-dom>${raw(options(days, dom, { blank: 'Same day as next date' }))}</select>`, { cls: 'dom-field' }))}
+    ${raw(field('End date (optional)', html`<input type="date" name="sched_end" value="${s.end_date ?? ''}">`))}
+    <div class="field span-2"><span>When it's due</span>
+      <label class="check"><input type="radio" name="sched_mode" value="auto" ${s.mode !== 'reminder' ? raw('checked') : ''}> Create it automatically</label>
+      <label class="check"><input type="radio" name="sched_mode" value="reminder" ${s.mode === 'reminder' ? raw('checked') : ''}> Remind me — I'll review and create it</label></div>
+  </div>${s.last_error ? raw(html`<div class="form-error">Last attempt failed: ${s.last_error}</div>`) : ''}</section>`;
+}
+
+export async function view(ctx, T = null) {
+  const capi = ctx.capi;
+  const isNew = T ? true : !!ctx.params.type;
+  const txn = T || isNew ? null : await capi.get(`/transactions/${ctx.params.id}`);
+  const type = T ? T.type : isNew ? ctx.params.type : txn.type;
   const def = ctx.meta.txn_types[type];
   if (!def) throw new Error('Unknown transaction type');
   const [accounts, customers, vendors, items, taxRates] = await Promise.all([capi.accounts(), capi.customers(), capi.vendors(), capi.items(), capi.taxRates()]);
   const L = { accounts, customers, vendors, items, taxRates };
-  const t = txn ?? defaults(ctx, type, L);
+  const t = (T?.t) ?? txn ?? defaults(ctx, type, L);
   const locked = t.status === 'voided';
   const closed = ctx.company.closing_date && t.date <= ctx.company.closing_date && !isNew;
-  ctx.setTitle(isNew ? `New ${def.label.toLowerCase()}` : `${def.label} ${t.number ?? ''}`);
+  ctx.setTitle(T ? `Recurring ${def.label.toLowerCase()}` : isNew ? `New ${def.label.toLowerCase()}` : `${def.label} ${t.number ?? ''}`);
 
-  ctx.el.innerHTML = html`<form class="page txn-form txn-${type}" data-form="txn" novalidate>
+  ctx.el.innerHTML = html`<form class="page txn-form txn-${type} ${T ? 'is-template' : ''}" data-form="txn" novalidate>
+    ${T ? raw(html`<div class="crumbs"><a href="${ctx.chref('recurring')}">Recurring transactions</a> ›</div>`) : ''}
     <div class="page-head">
-      <h1>${def.label} ${t.number && !isNew ? `#${t.number}` : ''} ${!isNew ? raw(badge(t.deposit_status ?? t.status_label)) : ''}</h1>
+      <h1>${T ? 'Recurring ' : ''}${def.label} ${t.number && !isNew ? `#${t.number}` : ''} ${!isNew ? raw(badge(t.deposit_status ?? t.status_label)) : ''}</h1>
       ${!isNew && (type === 'invoice' || type === 'bill') ? raw(html`<div class="balance-due"><small>Balance due</small><b>${money(t.balance)}</b></div>`) : ''}
     </div>
     ${locked ? raw('<div class="banner banner-muted">This transaction was voided. It has no effect on your books.</div>') : ''}
     ${closed ? raw(html`<div class="banner banner-warn">This transaction is dated on or before the closing date (${ctx.company.closing_date}) and can't be changed.</div>`) : ''}
     ${t.journal?.some((j) => j.cleared === 'R') ? raw('<div class="banner banner-info">This transaction has been reconciled. Undo the reconciliation to change it.</div>') : ''}
     ${t.applied_by?.length ? raw(html`<div class="banner banner-info">Applied: ${raw(t.applied_by.map((a) => html`<a href="${ctx.chref('txn/' + a.source_txn_id)}">${ctx.meta.txn_types[a.type].label} ${a.number ?? ''} (${fmtDate(a.date)}) ${money(a.amount)}</a>`).join(', '))}</div>`) : ''}
-    <section class="card header-fields"><div class="form-grid cols-4">${raw(headerFields(ctx, type, t, L))}</div></section>
+    ${T ? raw(scheduleCard(T.schedule)) : ''}
+    <section class="card header-fields"><div class="form-grid cols-4">${raw(headerFields(ctx, type, t, L, !!T))}</div></section>
     <div data-section="apply"></div>
     <div data-section="deposit"></div>
     ${def.lines && def.lines !== 'deposit' ? raw(html`<section class="card"><h3>${type === 'journal_entry' ? 'Lines' : ITEM_TYPES.includes(type) ? 'Products and services' : 'Category details'}</h3><div data-section="lines"></div>
@@ -52,13 +91,21 @@ export async function view(ctx) {
       <div class="form-grid">${raw(field(type === 'invoice' ? 'Message on invoice' : 'Memo', html`<textarea name="memo" rows="2">${t.memo ?? ''}</textarea>`, { cls: 'span-2' }))}</div>
       <div class="totals" data-section="totals"></div>
     </section>
+    ${T ? '' : raw('<section class="card" data-section="attachments"></section>')}
     <div class="form-error" hidden></div>
-    <div class="action-bar">
+    ${T ? raw(html`<div class="action-bar">
+      <a class="btn btn-ghost" href="${ctx.chref('recurring')}">Cancel</a>
+      <span class="spacer"></span>
+      ${T.rec ? raw('<button type="button" class="btn btn-ghost danger" data-action="delete-template">Delete template</button>') : ''}
+      <button type="submit" class="btn btn-primary" data-mode="template">Save template</button>
+    </div>`) : ''}
+    <div class="action-bar" ${T ? raw('hidden') : ''}>
       <a class="btn btn-ghost" href="${ctx.chref(BACK[type])}">Cancel</a>
       ${!isNew ? raw(html`<button type="button" class="btn btn-ghost" data-action="journal">Transaction journal</button>`) : ''}
       ${!isNew && ['invoice', 'sales_receipt', 'credit_memo'].includes(type) ? raw(html`<a class="btn btn-ghost" target="_blank" rel="noopener" href="${ctx.chref('print/' + t.id)}">Print</a>`) : ''}
       ${!isNew && type === 'invoice' && t.balance > 0 ? raw(html`<a class="btn" href="${ctx.chref('new/payment')}?customer=${t.customer_id}&apply=${t.id}">Receive payment</a>`) : ''}
       ${!isNew && type === 'bill' && t.balance > 0 ? raw(html`<a class="btn" href="${ctx.chref('new/bill_payment')}?vendor=${t.vendor_id}&apply=${t.id}">Make payment</a>`) : ''}
+      ${!isNew && !locked && RECURRING_TYPES.includes(type) ? raw(html`<a class="btn btn-ghost" href="${ctx.chref('recurring/new')}?from=${t.id}">Make recurring</a>`) : ''}
       <span class="spacer"></span>
       ${!isNew && !locked ? raw('<button type="button" class="btn btn-ghost danger" data-action="void">Void</button>') : ''}
       ${!isNew ? raw('<button type="button" class="btn btn-ghost danger" data-action="delete">Delete</button>') : ''}
@@ -68,13 +115,54 @@ export async function view(ctx) {
 
   const form = $('[data-form=txn]', ctx.el);
   if (locked || closed) $$('input,select,textarea', form).forEach((el) => { el.disabled = true; });
-  const S = { ctx, type, t, L, form, isNew, locked: locked || closed };
+  const S = { ctx, type, t, L, form, isNew, locked: locked || closed, template: T };
 
   renderLines(S, t.lines?.length ? t.lines : null);
   if (APPLY[type]) await renderApply(S);
-  if (type === 'deposit') await renderDeposit(S);
+  if (type === 'deposit' && !T) await renderDeposit(S);
   recalc(S);
+  S.pending = [];
+  if (!T) renderAttachments(S);
   wire(S);
+}
+
+// --- Attachments ------------------------------------------------------------
+
+const fmtSize = (n) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`);
+const fileIcon = (mime = '', name = '') => (mime.startsWith('image/') || /\.(jpe?g|png|gif|webp|heic)$/i.test(name) ? '🖼' : mime === 'application/pdf' || /\.pdf$/i.test(name) ? '📄' : '📎');
+
+function renderAttachments(S) {
+  const host = $('[data-section=attachments]', S.form);
+  if (!host) return;
+  const saved = S.t.attachments ?? [];
+  const url = (a, dl) => S.ctx.capi.url(`/attachments/${a.id}`, dl ? { download: '1' } : {});
+  host.innerHTML = html`<h3>Attachments <small>receipts, bills, statements · PDF, photos, Excel, Word or CSV · up to 10 MB each</small></h3>
+    ${saved.length || S.pending.length ? raw(html`<ul class="attach-list">
+      ${raw(saved.map((a) => html`<li><span class="ai">${fileIcon(a.mime, a.file_name)}</span><a href="${url(a)}" target="_blank" rel="noopener">${a.file_name}</a><small class="muted">${fmtSize(a.size)}</small><span class="spacer"></span><a class="link" href="${url(a, true)}">Download</a><button type="button" class="link danger" data-detach="${a.id}">Remove</button></li>`).join(''))}
+      ${raw(S.pending.map((f, i) => html`<li class="pending"><span class="ai">${fileIcon(f.type, f.name)}</span><span>${f.name}</span><small class="muted">${fmtSize(f.size)} · attached when you save</small><span class="spacer"></span><button type="button" class="link danger" data-unpend="${i}">Remove</button></li>`).join(''))}
+    </ul>`) : ''}
+    <label class="dropzone" data-drop><input type="file" multiple data-attach-input accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.heic,.xlsx,.docx,.csv,.txt,application/pdf,image/*"><span>Drag files here or <u>browse</u></span></label>`;
+}
+
+async function attachFiles(S, fileList) {
+  const list = [...fileList];
+  if (!list.length) return;
+  if (S.isNew) { S.pending.push(...list); renderAttachments(S); return; }
+  for (const f of list) {
+    try { await S.ctx.capi.post(`/transactions/${S.t.id}/attachments`, { file_name: f.name, data_base64: await fileToBase64(f) }); }
+    catch (ex) { toast(ex.message, 'error'); }
+  }
+  S.t.attachments = await S.ctx.capi.get(`/transactions/${S.t.id}/attachments`);
+  renderAttachments(S);
+  toast(list.length === 1 ? `Attached ${list[0].name}` : `Attached ${list.length} files`);
+}
+
+/** Upload files chosen before a new transaction was saved. */
+async function uploadPending(S, txnId) {
+  for (const f of S.pending) {
+    try { await S.ctx.capi.post(`/transactions/${txnId}/attachments`, { file_name: f.name, data_base64: await fileToBase64(f) }); }
+    catch (ex) { toast(`${f.name}: ${ex.message}`, 'error'); }
+  }
 }
 
 function defaults(ctx, type, L) {
@@ -95,7 +183,7 @@ function defaults(ctx, type, L) {
   return t;
 }
 
-function headerFields(ctx, type, t, L) {
+function headerFields(ctx, type, t, L, isTemplate = false) {
   const def = ctx.meta.txn_types[type];
   const out = [];
   if (def.party === 'customer') out.push(field(type === 'sales_receipt' ? 'Customer (optional)' : 'Customer', html`<select name="customer_id" data-party="customers" ${type !== 'sales_receipt' ? raw('required') : ''}>${raw(partyOptions(L.customers, t.customer_id, 'customer'))}</select>`, { cls: 'span-2' }));
@@ -112,12 +200,14 @@ function headerFields(ctx, type, t, L) {
     out.push(field('Transfer amount', html`<input name="total" inputmode="decimal" required value="${t.total ? num(t.total) : ''}" class="num">`));
   }
   if (type === 'payment' || type === 'bill_payment') out.push(field(type === 'payment' ? 'Amount received' : 'Amount', html`<input name="total" inputmode="decimal" class="num" value="${t.total ? num(t.total) : ''}" data-total>`));
-  out.push(field(type === 'invoice' ? 'Invoice date' : type === 'bill' ? 'Bill date' : type === 'payment' ? 'Payment date' : 'Date', html`<input type="date" name="date" required value="${t.date}">`));
-  if (type === 'invoice' || type === 'bill') {
+  out.push(field(isTemplate ? 'Next date' : type === 'invoice' ? 'Invoice date' : type === 'bill' ? 'Bill date' : type === 'payment' ? 'Payment date' : 'Date', html`<input type="date" name="date" required value="${t.date}">`, isTemplate ? { hint: 'When the next one is created' } : {}));
+  if (isTemplate) {
+    if (type === 'invoice' || type === 'bill') out.push(field('Due date', '<input disabled value="From payment terms">'));
+  } else if (type === 'invoice' || type === 'bill') {
     out.push(field('Terms', html`<select data-terms>${raw(options([0, 10, 15, 30, 45, 60, 90].map((d) => ({ id: d, name: d === 0 ? 'Due on receipt' : `Net ${d}` })), '', { blank: 'Custom' }))}</select>`));
     out.push(field('Due date', html`<input type="date" name="due_date" value="${t.due_date ?? ''}">`));
   }
-  if (type !== 'transfer' && type !== 'deposit') out.push(field(NUMBER_LABEL[type] ?? 'Ref no.', html`<input name="number" value="${t.number ?? ''}" placeholder="${def.numbered ? 'Auto' : ''}">`));
+  if (type !== 'transfer' && type !== 'deposit' && !isTemplate) out.push(field(NUMBER_LABEL[type] ?? 'Ref no.', html`<input name="number" value="${t.number ?? ''}" placeholder="${def.numbered ? 'Auto' : ''}">`));
   if (ITEM_TYPES.includes(type)) {
     out.push(field('Billing address', html`<textarea name="billing_address" rows="2">${t.billing_address ?? ''}</textarea>`, { cls: 'span-2' }));
     out.push(field('Sales tax', html`<select name="tax_rate_id" data-recalc>${raw(options(L.taxRates.filter((r) => r.is_active || r.id === t.tax_rate_id), t.tax_rate_id, { blank: 'No sales tax', label: (r) => `${r.name} (${r.rate}%)` }))}</select>`));
@@ -400,13 +490,27 @@ function wire(S) {
   // Save
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const err = $('.form-error', form);
+    const err = $(':scope > .form-error', form);
     err.hidden = true;
     const body = collect(S);
     $$('.action-bar button', form).forEach((b) => { b.disabled = true; });
     try {
+      if (S.template) {
+        const f = (n) => form.querySelector(`.schedule-fields [name="${n}"]`);
+        const { date, number, due_date, type: _t, ...template } = body;
+        const payload = {
+          type, template, next_date: date, name: f('sched_name').value, frequency: f('sched_frequency').value, interval_n: f('sched_interval').value,
+          day_of_month: f('sched_dom').value || null, end_date: f('sched_end').value || null, mode: form.querySelector('.schedule-fields [name=sched_mode]:checked')?.value ?? 'auto',
+        };
+        const rec = S.template.rec;
+        await (rec ? ctx.capi.put(`/recurring/${rec.id}`, payload) : ctx.capi.post('/recurring', payload));
+        toast(`Recurring “${payload.name}” saved`);
+        ctx.navigate(ctx.cpath('recurring'));
+        return;
+      }
       const saved = S.isNew ? await ctx.capi.post('/transactions', body) : await ctx.capi.put(`/transactions/${S.t.id}`, { ...body, expected_updated_at: S.t.updated_at });
-      toast(`${ctx.meta.txn_types[type].label} ${saved.number ?? ''} saved`);
+      if (S.isNew && S.pending.length) await uploadPending(S, saved.id);
+      toast(`${ctx.meta.txn_types[type].label} ${saved.number ?? ''} saved${S.isNew && S.pending.length ? ` with ${S.pending.length} attachment${S.pending.length > 1 ? 's' : ''}` : ''}`);
       if (saveMode === 'new') { if (S.isNew) ctx.reload(); else ctx.navigate(ctx.cpath('new/' + type)); }
       else if (history.length > 1 && S.isNew && ctx.query.apply) history.back();
       else ctx.navigate(ctx.cpath(BACK[type]));
@@ -416,6 +520,23 @@ function wire(S) {
     } finally { $$('.action-bar button', form).forEach((b) => { b.disabled = false; }); }
   });
 
+  on(form, 'change', '[data-attach-input]', (e, inp) => { attachFiles(S, inp.files); inp.value = ''; });
+  on(form, 'dragover', '[data-drop]', (e, z) => { e.preventDefault(); z.classList.add('over'); });
+  on(form, 'dragleave', '[data-drop]', (e, z) => z.classList.remove('over'));
+  on(form, 'drop', '[data-drop]', (e, z) => { e.preventDefault(); z.classList.remove('over'); attachFiles(S, e.dataTransfer.files); });
+  on(form, 'click', '[data-unpend]', (e, b) => { S.pending.splice(Number(b.dataset.unpend), 1); renderAttachments(S); });
+  on(form, 'click', '[data-detach]', async (e, b) => {
+    const a = (S.t.attachments ?? []).find((x) => String(x.id) === b.dataset.detach);
+    if (!(await confirmDialog(`Remove ${a?.file_name ?? 'this file'}?`, { okLabel: 'Remove' }))) return;
+    try { await ctx.capi.del(`/attachments/${b.dataset.detach}`); S.t.attachments = S.t.attachments.filter((x) => x !== a); renderAttachments(S); } catch (ex) { toast(ex.message, 'error'); }
+  });
+  on(form, 'click', '[data-action=delete-template]', async () => {
+    if (!(await confirmDialog('Delete this recurring template? Transactions it already created are kept.', { okLabel: 'Delete template' }))) return;
+    try { await ctx.capi.del(`/recurring/${S.template.rec.id}`); toast('Template deleted'); ctx.navigate(ctx.cpath('recurring')); } catch (ex) { toast(ex.message, 'error'); }
+  });
+  const syncDom = () => { const fq = form.querySelector('[data-freq]'); const d = form.querySelector('.dom-field'); if (fq && d) d.hidden = fq.value === 'weekly'; };
+  on(form, 'change', '[data-freq]', syncDom);
+  syncDom();
   on(form, 'click', '[data-action=delete]', async () => {
     if (!(await confirmDialog(`Delete this ${ctx.meta.txn_types[type].label.toLowerCase()}? This can't be undone. Consider voiding instead to keep a record.`, { okLabel: 'Delete' }))) return;
     try { await ctx.capi.del(`/transactions/${S.t.id}`); toast('Deleted'); ctx.navigate(ctx.cpath(BACK[type])); } catch (ex) { toast(ex.message, 'error'); }
