@@ -210,7 +210,16 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('.new-menu a')) menu.hidden = true;
   if (e.target.closest('.sidebar a')) document.body.classList.remove('nav-open');
 });
-on(document, 'click', '[data-action=new-menu]', (e, b) => { const m = document.querySelector('.new-menu'); m.hidden = !m.hidden; b.setAttribute('aria-expanded', String(!m.hidden)); });
+on(document, 'click', '[data-action=new-menu]', (e, b) => {
+  const m = document.querySelector('.new-menu');
+  m.hidden = !m.hidden;
+  b.setAttribute('aria-expanded', String(!m.hidden));
+  if (m.hidden) return;
+  // The menu floats over the page (the sidebar would clip it), anchored under the button and kept on screen.
+  const r = b.getBoundingClientRect();
+  m.style.top = `${r.bottom + 6}px`;
+  m.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - m.offsetWidth - 8))}px`;
+});
 on(document, 'click', '[data-action=toggle-nav]', () => document.body.classList.toggle('nav-open'));
 on(document, 'click', '[data-action=logout]', async () => {
   await api.post('/api/auth/logout').catch(() => {});

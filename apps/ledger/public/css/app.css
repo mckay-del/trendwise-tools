@@ -111,7 +111,7 @@ textarea { resize: vertical; }
 .btn-new { width: 100%; justify-content: center; background: transparent; color: #fafaf8; border: 1px solid var(--gold); font-weight: 500; letter-spacing: .04em; margin-bottom: .8rem; }
 .btn-new:hover { background: #b08d571f; }
 .new-wrap { position: relative; }
-.new-menu { position: absolute; left: 0; top: 2.6rem; z-index: 50; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 12px 32px rgb(0 0 0 / 22%); padding: 1rem 1.2rem; display: grid; grid-template-columns: repeat(3, max-content); gap: 1.6rem; }
+.new-menu { position: fixed; left: 8px; top: 3rem; z-index: 60; max-width: calc(100vw - 16px); max-height: calc(100vh - 4rem); overflow: auto; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 12px 32px rgb(0 0 0 / 22%); padding: 1rem 1.2rem; display: grid; grid-template-columns: repeat(3, max-content); gap: 1.6rem; }
 .new-col h4 { margin: 0 0 .5rem; font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .new-col a { display: block; padding: .28rem 0; color: var(--text); }
 .new-col a:hover { color: var(--brand); text-decoration: none; }
@@ -336,6 +336,7 @@ td.clip { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-spa
   .recon-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) {
+  .new-menu { grid-template-columns: repeat(2, max-content); }
   .shell { grid-template-columns: 1fr; }
   .sidebar { position: fixed; z-index: 60; width: 250px; transform: translateX(-100%); transition: transform .2s; }
   body.nav-open .sidebar { transform: none; box-shadow: 0 0 40px rgb(0 0 0 / 40%); }
