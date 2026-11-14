@@ -52,6 +52,19 @@ export function closeStatus(db, company, period) {
   items.push({ key: 'feed', required: true, status: feed.length ? 'todo' : 'ok', title: 'Bank feed: nothing left "For review" through month end',
     detail: feed.map((f) => ({ text: `${f.name}: ${f.n} to review`, ok: false, link: `banking?account=${f.account_id}` })) });
 
+  // 2b. Clients on GoHighLevel: a sync has run after month end, so the month's invoices and payments are all in.
+  const ghl = db.get('SELECT last_sync_at, last_error FROM ghl_connections WHERE company_id = ?', cid);
+  if (ghl) {
+    const syncedDate = ghl.last_sync_at ? ghl.last_sync_at.slice(0, 10) : null; // stored in UTC; month end is a local date, so require the day after
+    const fresh = !!syncedDate && syncedDate > end && !ghl.last_error;
+    const open = db.get("SELECT COUNT(*) AS n FROM sync_issues WHERE company_id = ? AND source = 'ghl'", cid).n;
+    items.push({ key: 'ghl', required: true, status: fresh ? (open ? 'warn' : 'ok') : 'todo', title: 'GoHighLevel synced after month end',
+      detail: [
+        { text: ghl.last_error ? `Last sync failed: ${ghl.last_error}` : syncedDate ? `Last synced ${syncedDate}${fresh ? '' : ` — sync again so everything through ${end} is in`}` : 'Never synced', ok: fresh, link: 'ghl' },
+        ...(open ? [{ text: `${open} GHL item${open > 1 ? 's' : ''} need attention`, ok: false, link: 'ghl' }] : []),
+      ] });
+  }
+
   // 3. Uncategorized income/expense cleared for the fiscal year to date.
   const fy = fiscalYearStart(company, end);
   const unc = ['UNCATEGORIZED_EXPENSE', 'UNCATEGORIZED_INCOME'].map((k) => systemAccount(db, cid, k)).map((a) => ({ a, bal: db.get('SELECT COALESCE(SUM(debit - credit),0) AS b FROM journal_lines WHERE account_id = ? AND date >= ? AND date <= ?', a.id, fy, end).b })).filter((x) => x.bal !== 0);

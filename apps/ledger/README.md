@@ -35,7 +35,7 @@ In a **`TrendwiseLedger`** folder in your user folder (for example `C:\Users\you
 | `LEDGER_DATA_DIR` | `~/TrendwiseLedger` | Folder for the database and command-line backups |
 | `LEDGER_DB` | `<data dir>/ledger.db` | Exact database file (overrides the folder) |
 | `NODE_ENV=production` | — | Adds `Secure` to the session cookie (serve behind HTTPS) |
-| `LEDGER_TZ` | `America/Los_Angeles` | Time zone used to decide when recurring transactions are due |
+| `LEDGER_TZ` | `America/Los_Angeles` | Time zone for recurring due dates and for converting GHL payment times to dates |
 | `LEDGER_ADMIN_EMAIL` / `LEDGER_ADMIN_PASSWORD` | `admin@example.com` / random | Used by `seed:demo` only when no users exist |
 
 Run tests with `npm test`.
@@ -62,6 +62,7 @@ Run tests with `npm test`.
 | **Split bank lines** | On Banking › For review, split one bank line across several categories (loan principal + interest, a store run split between supplies and meals); it saves only when the lines add up to the bank amount |
 | **Attachments** | Attach receipts, bills and statements (PDF, JPG/PNG/HEIC photos, Excel, Word, CSV; 10 MB each) to any transaction by browsing or drag-and-drop. Types are verified from file content; stored in the database so backups include them; 📎 shown in lists |
 | **Month-end close** | Per-client, per-month checklist. **Automatic checks:** bank and cards reconciled through month end, nothing left For review, Uncategorized cleared, Undeposited Funds, negative bank balances, Opening Balance Equity. **Sign-offs:** P&L, Balance Sheet and A/R & A/P reviewed, filings done, package sent, plus notes. **Close the month** sets the closing date, and **Reopen** restores the previous one. The Companies page shows each client's close status |
+| **GoHighLevel sync** | Per client: connect the GHL sub-account (Location ID + a read-only Private Integration key with `invoices.readonly` and `payments/transactions.readonly`). On each client's schedule (**daily overnight** by default, hourly, or manual only) or with **Sync now**, the ledger pulls new and changed **invoices** (products become Products & Services; discounts, tax, edits and voids carry over) and **payments** (applied to their invoice into Undeposited Funds; funnel or order payments become sales receipts; refunds recorded). A start date keeps earlier GHL activity out so opening A/R isn't double-counted. **Preview** shows exactly what a sync would do; anything it can't bring in is listed under *Needs attention*. Read-only on the GHL side, and outbound-only, so the server stays private |
 | **Users** | Admin / Accountant / Standard / Viewer roles |
 
 ## Accounting design

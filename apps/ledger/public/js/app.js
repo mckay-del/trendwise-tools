@@ -12,13 +12,14 @@ import * as pkg from './views/package.js';
 import * as importer from './views/import.js';
 import * as recurring from './views/recurring.js';
 import * as closeView from './views/close.js';
+import * as ghlView from './views/ghl.js';
 
 const state = { user: null, meta: null, company: null, capi: null, companies: [] };
 
 const NAV = [
   { href: 'dashboard', label: 'Dashboard', icon: '◧' },
   { href: 'banking', label: 'Banking', icon: '⌂', children: [['banking', 'Bank transactions'], ['banking/rules', 'Rules'], ['reconcile', 'Reconcile']] },
-  { href: 'sales', label: 'Sales', icon: '↗', children: [['sales', 'All sales'], ['invoices', 'Invoices'], ['customers', 'Customers'], ['items', 'Products & services']] },
+  { href: 'sales', label: 'Sales', icon: '↗', children: [['sales', 'All sales'], ['invoices', 'Invoices'], ['customers', 'Customers'], ['items', 'Products & services'], ['ghl', 'GoHighLevel sync']] },
   { href: 'expenses', label: 'Expenses', icon: '↘', children: [['expenses', 'Expenses'], ['bills', 'Bills'], ['vendors', 'Vendors']] },
   { href: 'reports', label: 'Reports', icon: '▤' },
   { href: 'accounts', label: 'Accounting', icon: '≡', children: [['accounts', 'Chart of accounts'], ['transactions', 'All transactions'], ['recurring', 'Recurring transactions'], ['reconcile', 'Reconcile'], ['close', 'Month-end close'], ['import', 'Import from QuickBooks']] },
@@ -61,6 +62,7 @@ const ROUTES = [
   ['c/:cid/import', importer.view],
   ['c/:cid/recurring', recurring.list],
   ['c/:cid/close', closeView.view],
+  ['c/:cid/ghl', ghlView.view],
   ['c/:cid/recurring/:id', forms.recurringEdit],
   ['c/:cid/package/print', pkg.print, { bare: true }],
   ['c/:cid/settings', settings.company],

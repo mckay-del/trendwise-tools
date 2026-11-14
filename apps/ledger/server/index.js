@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { openDb, defaultDbPath, migrateLegacyDb } from './db.js';
 import { createHandler } from './app.js';
 import { runDue } from './services/recurring.js';
+import { syncAll as syncGhl } from './services/ghl.js';
 
 const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 const [major, minor] = process.versions.node.split('.').map(Number);
@@ -35,6 +36,21 @@ function runRecurring() {
 }
 runRecurring();
 setInterval(runRecurring, 60 * 60 * 1000).unref();
+
+// GoHighLevel: every hour, sync the clients that are due (daily ones overnight, hourly ones each hour; first check 2 minutes after start).
+let ghlRunning = false;
+async function runGhl() {
+  if (ghlRunning) return;
+  ghlRunning = true;
+  try {
+    for (const r of await syncGhl(db)) {
+      if (r.error) console.error(`GHL sync for company ${r.company_id} failed: ${r.error}`);
+      else if (r.invoices.created + r.invoices.updated + r.payments.created + r.payments.refunds) console.log(`GHL sync company ${r.company_id}: ${r.invoices.created} invoices, ${r.payments.created} payments${r.issues ? `, ${r.issues} need attention` : ''}`);
+    }
+  } catch (e) { console.error('GHL sync failed:', e.message); } finally { ghlRunning = false; }
+}
+setTimeout(runGhl, 2 * 60 * 1000).unref();
+setInterval(runGhl, 60 * 60 * 1000).unref();
 
 server.listen(port, host, () => {
   const url = `http://${host === '0.0.0.0' ? '127.0.0.1' : host}:${port}`;
