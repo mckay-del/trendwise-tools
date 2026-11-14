@@ -9,6 +9,7 @@ export async function feed(ctx) {
   const feedAccts = accounts.filter((a) => a.type === 'bank' || a.type === 'credit_card');
   if (!feedAccts.length) { ctx.el.innerHTML = '<div class="page"><h1>Banking</h1><div class="empty">Add a bank or credit card account in the chart of accounts first.</div></div>'; return; }
   const acctId = Number(ctx.query.account) || feedAccts[0].id;
+  const isBank = feedAccts.find((a) => a.id === acctId)?.type === 'bank';
   const tab = ctx.query.tab ?? 'review';
   const rows = await ctx.capi.get('/bank/feed', { account_id: acctId, status: tab === 'done' ? 'done' : tab });
   const categories = accounts.filter((a) => a.id !== acctId && !['accounts_receivable', 'accounts_payable'].includes(a.type) && a.system_key !== 'UNDEPOSITED');
@@ -30,7 +31,7 @@ export async function feed(ctx) {
         <td><select data-payee data-quick-add="${r.amount < 0 ? 'vendors' : 'customers'}" data-prefill="${guessPayee(r.description)}" aria-label="${r.amount < 0 ? 'Payee (vendor)' : 'Received from (customer)'}">${raw(partyOptions(payeeList, payeeSel, r.amount < 0 ? 'vendors' : 'customers'))}</select></td>
         <td>${best ? raw(html`<label class="match"><input type="radio" name="mode-${r.id}" value="match" checked> Match: <a href="${ctx.chref('txn/' + best.transaction_id)}">${best.type_label} ${best.number ?? ''}</a> <small>${fmtDate(best.date)}${best.payee ? ' · ' + esc(best.payee) : ''}</small></label><label class="match"><input type="radio" name="mode-${r.id}" value="add"> Categorize</label>`) : ''}
           <select data-cat aria-label="Category" ${best ? raw('hidden') : ''}>${raw(catOpts(r.suggested_account_id))}</select></td>
-        <td class="nowrap"><button type="button" class="btn btn-small btn-primary" data-go>${best ? 'Match' : 'Add'}</button> <button type="button" class="link" data-split>Split</button> <button type="button" class="link" data-exclude>Exclude</button> <button type="button" class="link" data-mkrule>Rule…</button></td></tr>`;
+        <td class="nowrap"><button type="button" class="btn btn-small btn-primary" data-go>${best ? 'Match' : 'Add'}</button> <button type="button" class="link" data-split>Split</button>${r.amount > 0 && isBank ? raw(' <button type="button" class="link" data-from-payments title="Deposit of payments already recorded (Stripe payout, wire, checks)">From payments</button>') : ''} <button type="button" class="link" data-exclude>Exclude</button> <button type="button" class="link" data-mkrule>Rule…</button></td></tr>`;
     }).join(''))}</tbody></table></div>` : html`<div class="empty"><p>You're all caught up. 🎉</p><p class="muted">Upload a CSV, QFX or OFX file from your bank to bring in new transactions.</p></div>`;
 
   const doneTable = () => dataTable(rows, [
@@ -94,6 +95,10 @@ export async function feed(ctx) {
     reload();
   });
   on(ctx.el, 'click', '[data-action=apply-rules]', async () => { const r = await ctx.capi.post('/bank/rules/apply', { account_id: acctId }); toast(`${r.suggested} matched a rule, ${r.added} auto-added`); reload(); });
+  on(ctx.el, 'click', '[data-from-payments]', (e, b) => {
+    const r = rows.find((x) => String(x.id) === b.closest('tr').dataset.feed);
+    fromPaymentsDialog(ctx, r, accounts, reload);
+  });
   on(ctx.el, 'click', '[data-split]', (e, b) => {
     const tr = b.closest('tr');
     const r = rows.find((x) => String(x.id) === tr.dataset.feed);
@@ -191,6 +196,44 @@ function upload(ctx, feedAccts, acctId, done) {
   form.file.addEventListener('change', async () => { file = await readUploadFile(form.file.files[0]).catch((e) => { toast(e.message, 'error'); return null; }); refresh(false); });
   form.account_id.addEventListener('change', () => { loadLast(); refresh(false); });
   on(form, 'change', '[data-relayout]', () => refresh(true));
+}
+
+/**
+ * A bank deposit made of payments already recorded (GHL/Stripe payouts, wires, checks).
+ * Tick the payments it contains; if they total more than the bank received, the difference is the processing fee.
+ */
+async function fromPaymentsDialog(ctx, r, accounts, done) {
+  const cands = await ctx.capi.get(`/bank/feed/${r.id}/deposit-candidates`);
+  const feeAccts = accounts.filter((a) => ['expense', 'other_expense', 'cost_of_goods_sold'].includes(a.type));
+  const defaultFee = feeAccts.find((a) => /bank charge|merchant|processing|stripe/i.test(a.name))?.id;
+  const m = modal({
+    title: 'Deposit from payments', wide: true, submitLabel: 'Record deposit',
+    body: html`<div class="split-head"><div><small class="muted">${fmtDate(r.date)}</small><div><b>${r.description}</b></div></div><div class="split-amt"><small>Received</small><b>${money(r.amount)}</b></div></div>
+      ${cands.length ? raw(html`<p class="muted">Tick the payments included in this deposit. Stripe's dashboard (Balance → Payouts) lists the payments in each payout.</p>
+      <div class="table-wrap"><table class="grid"><thead><tr><th></th><th>Date</th><th>Customer</th><th>Type</th><th>Ref</th><th class="num">Amount</th></tr></thead><tbody>
+        ${raw(cands.map((c) => html`<tr><td><input type="checkbox" data-pay="${c.id}" data-amt="${c.total}" aria-label="Include"></td><td>${fmtDate(c.date)}</td><td>${c.customer_name || '—'}</td><td>${c.type_label}</td><td><small>${c.number ?? ''}</small></td><td class="num">${money(c.total)}</td></tr>`).join(''))}
+      </tbody></table></div>
+      <div class="form-grid" style="margin-top:1rem">${raw(field('Fee account (if the deposit is less than the payments)', html`<select name="fee_account_id">${raw(options(feeAccts, defaultFee, { blank: 'Choose…', label: acctLabel }))}</select>`))}<div data-sum class="deposit-sum"></div></div>`)
+        : raw('<div class="empty">No payments are waiting in Undeposited Funds. Sync GoHighLevel or record the payment first, or categorize this line with Add.</div>')}`,
+    onSubmit: async (d, form) => {
+      const ids = [...form.querySelectorAll('[data-pay]:checked')].map((c) => Number(c.dataset.pay));
+      const res = await ctx.capi.post(`/bank/feed/${r.id}/add`, { payment_ids: ids, fee_account_id: form.fee_account_id?.value || null });
+      toast(`Deposit recorded${res.fee ? ` with ${money(res.fee)} in fees` : ''}`);
+      done();
+    },
+  });
+  const form = m.el;
+  const sum = () => {
+    const sel = [...form.querySelectorAll('[data-pay]:checked')].reduce((s, c) => s + Number(c.dataset.amt), 0);
+    const fee = sel - r.amount;
+    const box = form.querySelector('[data-sum]');
+    if (box) box.innerHTML = html`<div class="kv"><span>Payments ticked</span><b>${money(sel)}</b></div><div class="kv"><span>Bank received</span><b>${money(r.amount)}</b></div>
+      <div class="kv total ${fee < 0 ? 'bad' : ''}"><span>${fee < 0 ? 'Short by (tick more payments)' : fee === 0 ? 'Fees' : 'Fees (difference)'}</span><b>${money(Math.abs(fee))}</b></div>`;
+    const ok = sel > 0 && fee >= 0 && (fee === 0 || !!form.fee_account_id?.value);
+    form.querySelector('[type=submit]').disabled = !ok;
+  };
+  on(form, 'change', '[data-pay], [name=fee_account_id]', sum);
+  sum();
 }
 
 /** Split one bank line across several categories. The lines must add up to the bank amount. */

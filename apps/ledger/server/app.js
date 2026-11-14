@@ -131,6 +131,7 @@ export function buildRouter(db) {
   r.post('/api/c/:cid/imports/:id/undo', (ctx) => qbo.undoImport(db, cid(ctx), id(ctx), uid(ctx)), { closeBooks: true });
   r.get('/api/c/:cid/bank/feed', (ctx) => bank.listFeed(db, cid(ctx), ctx.query));
   r.put('/api/c/:cid/bank/feed/:id', (ctx) => bank.updateFeedSuggestion(db, cid(ctx), id(ctx), ctx.body));
+  r.get('/api/c/:cid/bank/feed/:id/deposit-candidates', (ctx) => bank.depositCandidates(db, cid(ctx), id(ctx)));
   r.post('/api/c/:cid/bank/feed/:id/add', (ctx) => bank.addFromFeed(db, cid(ctx), id(ctx), ctx.body, uid(ctx)));
   r.post('/api/c/:cid/bank/feed/:id/match', (ctx) => bank.matchFeed(db, cid(ctx), id(ctx), ctx.body, uid(ctx)));
   r.post('/api/c/:cid/bank/feed/:id/exclude', (ctx) => bank.excludeFeed(db, cid(ctx), id(ctx), uid(ctx)));

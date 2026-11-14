@@ -478,3 +478,5 @@ details summary { cursor: pointer; }
 .issue-list { list-style: none; padding: 0; margin: 0; }
 .issue-list li { display: flex; gap: .8rem; align-items: baseline; padding: .5rem 0; border-bottom: 1px solid var(--border); }
 .issue-list li span { flex: 1; }
+.deposit-sum { align-self: end; }
+.kv.bad b, .kv.bad span { color: var(--danger, #b42318); }
