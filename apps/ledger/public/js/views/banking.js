@@ -30,7 +30,7 @@ export async function feed(ctx) {
         <td><select data-payee data-quick-add="${r.amount < 0 ? 'vendors' : 'customers'}" data-prefill="${guessPayee(r.description)}" aria-label="${r.amount < 0 ? 'Payee (vendor)' : 'Received from (customer)'}">${raw(partyOptions(payeeList, payeeSel, r.amount < 0 ? 'vendors' : 'customers'))}</select></td>
         <td>${best ? raw(html`<label class="match"><input type="radio" name="mode-${r.id}" value="match" checked> Match: <a href="${ctx.chref('txn/' + best.transaction_id)}">${best.type_label} ${best.number ?? ''}</a> <small>${fmtDate(best.date)}${best.payee ? ' · ' + esc(best.payee) : ''}</small></label><label class="match"><input type="radio" name="mode-${r.id}" value="add"> Categorize</label>`) : ''}
           <select data-cat aria-label="Category" ${best ? raw('hidden') : ''}>${raw(catOpts(r.suggested_account_id))}</select></td>
-        <td class="nowrap"><button type="button" class="btn btn-small btn-primary" data-go>${best ? 'Match' : 'Add'}</button> <button type="button" class="link" data-exclude>Exclude</button> <button type="button" class="link" data-mkrule>Rule…</button></td></tr>`;
+        <td class="nowrap"><button type="button" class="btn btn-small btn-primary" data-go>${best ? 'Match' : 'Add'}</button> <button type="button" class="link" data-split>Split</button> <button type="button" class="link" data-exclude>Exclude</button> <button type="button" class="link" data-mkrule>Rule…</button></td></tr>`;
     }).join(''))}</tbody></table></div>` : html`<div class="empty"><p>You're all caught up. 🎉</p><p class="muted">Upload a CSV, QFX or OFX file from your bank to bring in new transactions.</p></div>`;
 
   const doneTable = () => dataTable(rows, [
@@ -94,6 +94,11 @@ export async function feed(ctx) {
     reload();
   });
   on(ctx.el, 'click', '[data-action=apply-rules]', async () => { const r = await ctx.capi.post('/bank/rules/apply', { account_id: acctId }); toast(`${r.suggested} matched a rule, ${r.added} auto-added`); reload(); });
+  on(ctx.el, 'click', '[data-split]', (e, b) => {
+    const tr = b.closest('tr');
+    const r = rows.find((x) => String(x.id) === tr.dataset.feed);
+    splitDialog(ctx, r, { categories, catOpts, vendors, customers, payee: tr.querySelector('[data-payee]').value, category: tr.querySelector('[data-cat]').value, done: reload });
+  });
   on(ctx.el, 'click', '[data-mkrule]', async (e, b) => {
     const tr = b.closest('tr');
     const r = rows.find((x) => String(x.id) === tr.dataset.feed);
@@ -186,6 +191,58 @@ function upload(ctx, feedAccts, acctId, done) {
   form.file.addEventListener('change', async () => { file = await readUploadFile(form.file.files[0]).catch((e) => { toast(e.message, 'error'); return null; }); refresh(false); });
   form.account_id.addEventListener('change', () => { loadLast(); refresh(false); });
   on(form, 'change', '[data-relayout]', () => refresh(true));
+}
+
+/** Split one bank line across several categories. The lines must add up to the bank amount. */
+function splitDialog(ctx, r, { catOpts, vendors, customers, payee, category, done }) {
+  const out = r.amount < 0;
+  const total = Math.abs(r.amount);
+  const lineRow = (l = {}) => html`<tr data-split-line>
+    <td><select name="s_account" aria-label="Category">${raw(catOpts(l.account_id))}</select></td>
+    <td><input name="s_desc" value="${l.description ?? ''}" placeholder="${r.description}" aria-label="Description"></td>
+    <td><input name="s_amount" class="num" inputmode="decimal" value="${l.amount ?? ''}" aria-label="Amount"></td>
+    <td><select name="s_customer" data-quick-add="customers" aria-label="Customer">${raw(partyOptions(customers, l.customer_id, 'customers'))}</select></td>
+    <td><button type="button" class="icon-btn" data-del-split aria-label="Remove line">🗑</button></td></tr>`;
+  const m = modal({
+    title: 'Split transaction', wide: true, submitLabel: 'Save split',
+    body: html`<div class="split-head"><div><small class="muted">${fmtDate(r.date)}</small><div><b>${r.description}</b></div></div><div class="split-amt ${out ? 'neg' : ''}"><small>${out ? 'Spent' : 'Received'}</small><b>${money(total)}</b></div></div>
+      ${raw(field(out ? 'Payee (vendor)' : 'Received from (customer)', html`<select name="payee" data-quick-add="${out ? 'vendors' : 'customers'}" data-prefill="${guessPayee(r.description)}">${raw(partyOptions(out ? vendors : customers, payee, out ? 'vendors' : 'customers'))}</select>`))}
+      <div class="table-wrap"><table class="lines"><thead><tr><th>Category</th><th>Description</th><th class="num">Amount</th><th>Customer (optional)</th><th></th></tr></thead>
+        <tbody data-split-body>${raw(lineRow({ account_id: category || null, amount: (total / 100).toFixed(2) }) + lineRow())}</tbody></table></div>
+      <div class="btn-row"><button type="button" class="btn btn-small" data-add-split>Add line</button><span class="spacer"></span><span data-remaining></span></div>`,
+    onSubmit: async (d, form) => {
+      const splits = [...form.querySelectorAll('[data-split-line]')].map((tr) => ({
+        account_id: tr.querySelector('[name=s_account]').value || null, description: tr.querySelector('[name=s_desc]').value,
+        amount: tr.querySelector('[name=s_amount]').value.replace(/[$,]/g, ''), customer_id: ((v) => (v && v !== '__new' ? v : null))(tr.querySelector('[name=s_customer]').value),
+      })).filter((s) => s.account_id || s.amount);
+      const p = form.payee.value && form.payee.value !== '__new' ? form.payee.value : null;
+      await ctx.capi.post(`/bank/feed/${r.id}/add`, { splits, ...(out ? { vendor_id: p } : { customer_id: p }) });
+      toast(`Split into ${splits.length} lines and added`);
+      done();
+    },
+  });
+  const form = m.el;
+  const body = form.querySelector('[data-split-body]');
+  const recalc = () => {
+    const sum = [...body.querySelectorAll('[name=s_amount]')].reduce((s, i) => s + (Math.round(Number(i.value.replace(/[$,]/g, '')) * 100) || 0), 0);
+    const left = total - sum;
+    form.querySelector('[data-remaining]').innerHTML = left === 0 ? html`<span class="badge badge-ok">Balanced ✓</span>` : html`<span class="${left < 0 ? 'neg' : ''}">${left > 0 ? 'Left to assign' : 'Over by'} <b>${money(Math.abs(left))}</b></span>`;
+    form.querySelector('[type=submit]').disabled = left !== 0;
+  };
+  on(form, 'click', '[data-add-split]', () => { body.insertAdjacentHTML('beforeend', lineRow()); recalc(); });
+  on(form, 'click', '[data-del-split]', (e, btn) => { if (body.children.length > 1) btn.closest('tr').remove(); recalc(); });
+  on(form, 'input', '[name=s_amount]', recalc);
+  // Moving off an amount: put whatever is left on the next empty line.
+  on(form, 'change', '[name=s_amount]', (e, inp) => {
+    const rowsEls = [...body.querySelectorAll('[data-split-line]')];
+    const sum = rowsEls.reduce((s, tr) => s + (Math.round(Number(tr.querySelector('[name=s_amount]').value.replace(/[$,]/g, '')) * 100) || 0), 0);
+    const empty = rowsEls.find((tr) => !tr.querySelector('[name=s_amount]').value);
+    if (total - sum > 0 && empty) empty.querySelector('[name=s_amount]').value = ((total - sum) / 100).toFixed(2);
+    else if (total - sum > 0 && inp.closest('tr') === rowsEls.at(-1)) { body.insertAdjacentHTML('beforeend', lineRow({ amount: ((total - sum) / 100).toFixed(2) })); }
+    recalc();
+  });
+  wireQuickAdd(ctx, form, { onCreated: (c, table) => { (table === 'vendors' ? vendors : customers).push(c); } });
+  recalc();
 }
 
 function editRule(ctx, r, accounts, vendors, customers) {

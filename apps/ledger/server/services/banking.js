@@ -265,6 +265,7 @@ export function addFromFeed(db, companyId, id, body, userId) {
     const f = getFeedRow(db, companyId, id);
     if (f.status !== 'review') throw bad('This transaction has already been handled');
     const acct = getAccount(db, companyId, f.account_id);
+    if (Array.isArray(body.splits) && body.splits.length) return addSplit(db, companyId, f, acct, body, userId);
     const categoryId = intOrNull(body.account_id) ?? f.suggested_account_id;
     if (!categoryId) throw bad('Choose a category');
     const cat = getAccount(db, companyId, categoryId);
@@ -295,6 +296,47 @@ export function addFromFeed(db, companyId, id, body, userId) {
     db.run("UPDATE bank_feed SET status='added', txn_id=? WHERE id=?", txn.id, f.id);
     return { feed_id: f.id, transaction: txn };
   });
+}
+
+/**
+ * One bank line spread over several categories (e.g. loan payment = principal + interest).
+ * Money out → an expense with several lines; money into a bank account → a deposit with several lines;
+ * money onto a credit card (refund/credit) → a journal entry.
+ */
+function addSplit(db, companyId, f, acct, body, userId) {
+  const vendorId = intOrNull(body.vendor_id);
+  const customerId = intOrNull(body.customer_id);
+  const memo = str(body.memo) ?? f.description;
+  const lines = body.splits.map((s, i) => {
+    const accountId = intOrNull(s.account_id);
+    const cents = toCents(s.amount);
+    if (!accountId && !cents) return null;
+    if (!accountId) throw bad(`Split line ${i + 1}: choose a category`);
+    if (cents <= 0) throw bad(`Split line ${i + 1}: enter an amount greater than zero`);
+    const a = getAccount(db, companyId, accountId);
+    if (a.id === acct.id) throw bad(`Split line ${i + 1}: a line can't go back to ${acct.name} itself`);
+    if (['accounts_receivable', 'accounts_payable'].includes(a.type)) throw bad(`Split line ${i + 1}: use Receive payment or Pay bills for ${a.name}`);
+    return { account_id: a.id, cents, description: str(s.description, 1000) ?? memo, customer_id: intOrNull(s.customer_id) ?? (f.amount > 0 ? customerId : null) };
+  }).filter(Boolean);
+  if (lines.length < 1) throw bad('Add at least one split line');
+  const total = lines.reduce((s, l) => s + l.cents, 0);
+  if (total !== Math.abs(f.amount)) throw bad(`The split lines add up to ${fmtMoney(total)}, but the bank shows ${fmtMoney(Math.abs(f.amount))}. Difference: ${fmtMoney(Math.abs(f.amount) - total)}.`);
+  const dollars = (c) => c / 100;
+  let doc;
+  if (f.amount < 0) {
+    doc = { type: 'expense', date: f.date, account_id: acct.id, vendor_id: vendorId, memo, lines: lines.map((l) => ({ account_id: l.account_id, amount: dollars(l.cents), description: l.description, customer_id: l.customer_id })) };
+  } else if (acct.type === 'bank') {
+    doc = { type: 'deposit', date: f.date, account_id: acct.id, memo, lines: lines.map((l) => ({ account_id: l.account_id, amount: dollars(l.cents), description: l.description, customer_id: l.customer_id, vendor_id: vendorId })) };
+  } else {
+    doc = { type: 'journal_entry', date: f.date, memo: `Credit card credit: ${memo}`, lines: [
+      { account_id: acct.id, debit: dollars(total), description: memo, vendor_id: vendorId },
+      ...lines.map((l) => ({ account_id: l.account_id, credit: dollars(l.cents), description: l.description, vendor_id: vendorId, customer_id: l.customer_id })),
+    ] };
+  }
+  const txn = createTransaction(db, companyId, doc, userId);
+  markCleared(db, txn.id, acct.id, f.amount);
+  db.run("UPDATE bank_feed SET status='added', txn_id=? WHERE id=?", txn.id, f.id);
+  return { feed_id: f.id, transaction: txn };
 }
 
 export function matchFeed(db, companyId, id, { transaction_id }, userId) {

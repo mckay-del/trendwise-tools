@@ -429,3 +429,10 @@ details summary { cursor: pointer; }
 
 .block-link { display: block; text-decoration: none !important; }
 .is-template .schedule-fields { border-left: 4px solid var(--brand); }
+
+/* Split transaction dialog */
+.split-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; padding-bottom: .8rem; border-bottom: 1px solid var(--border); }
+.split-amt { text-align: right; }
+.split-amt small { display: block; color: var(--muted); }
+.split-amt b { font-size: 1.4rem; font-variant-numeric: tabular-nums; }
+.modal .lines td:first-child { min-width: 210px; }
