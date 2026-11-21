@@ -9,8 +9,8 @@ Built on the same stack as [Trendwise Ledger](../ledger/README.md): Node.js ≥ 
 | Step | What | State |
 |---|---|---|
 | 1 | Board with manual tasks: columns, drag and drop, due dates, done list, daily roll-forward | **Done (v0.1)** |
-| 2 | Connect Google accounts (OAuth, encrypted tokens), two-way Google Tasks sync | Next |
-| 3 | Read-only Gmail + Calendar sync across all accounts | Planned |
+| 2 | Connect Google accounts (OAuth, encrypted tokens), two-way Google Tasks sync | **Done (v0.2)** |
+| 3 | Read-only Gmail + Calendar sync across all accounts | Next |
 | 4 | Claude triage: turns emails and events into tasks, picks the column, explains why | Planned |
 | 5 | Run on the Tailscale server, backups | Planned |
 
@@ -28,6 +28,17 @@ npm start            # http://127.0.0.1:3100
 
 The first visit asks you to create your login.
 
+## Connecting Google accounts
+
+Follow **[GOOGLE-SETUP.md](GOOGLE-SETUP.md)** once. Then use **Settings → Connect Google account** for each account.
+
+How Google Tasks sync works:
+- **From Google:** open tasks in every list of every connected account appear on the board, with the account's colored badge. Tasks added, edited, completed or deleted on your phone show up here on the next sync. The board refreshes itself every minute.
+- **To Google:** board tasks are written to a **Taskboard** list in their account; tasks you add by hand go to the **Primary** account. The column is noted at the end of the task's notes, e.g. `[Taskboard: Today]`, because Google Tasks has no columns. Changes are sent a few seconds after you make them.
+- **Both sides changed:** the board's version wins, but completing a task anywhere completes it.
+- **Schedule:** every 15 minutes by default (Settings → Sync), or press **Sync now**. Each account syncs separately, so one that needs reconnecting doesn't hold up the others.
+- **Disconnect** removes the board's access to that account. Its tasks stay on the board as your own.
+
 ## Using the board
 
 - **＋ New task** (or the ＋ on a column). Leave the column blank to place it from the due date: overdue/today → **Today**, within 7 days → **This week**, otherwise **Later**.
@@ -37,7 +48,7 @@ The first visit asks you to create your login.
 
 ## Where the data lives
 
-`~/McKaysTaskboard/taskboard.db` (for example `C:\Users\you\McKaysTaskboard`). This is outside the app folder, so task data (and, later, Google tokens) never goes into git or OneDrive.
+`~/McKaysTaskboard/` (for example `C:\Users\you\McKaysTaskboard`): `taskboard.db` holds the tasks, and `secret.key` encrypts the Google sign-ins stored in it. The folder is outside the app folder, so none of it goes into git or OneDrive. Keep both files together when moving computers.
 
 | Env var | Default | Purpose |
 |---|---|---|
@@ -46,5 +57,7 @@ The first visit asks you to create your login.
 | `TASKBOARD_DB` | `<data dir>/taskboard.db` | Exact database file |
 | `TASKBOARD_TZ` | `America/Los_Angeles` | When "today" starts |
 | `NODE_ENV=production` | — | Secure session cookie (serve behind HTTPS) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | — | Google app details, instead of entering them in Settings |
+| `TASKBOARD_PUBLIC_URL` | address you opened | Fixes the OAuth redirect address, e.g. `https://taskboard.your-tailnet.ts.net` |
 
 Run the tests with `npm test`.

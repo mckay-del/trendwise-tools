@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { openDb, defaultDbPath } from './db.js';
 import { createHandler } from './app.js';
 import { rollForward } from './services/tasks.js';
+import { syncIfDue } from './services/sync.js';
 
 const NAME = "McKay's Taskboard";
 const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
@@ -32,6 +33,13 @@ function roll() {
 }
 roll();
 setInterval(roll, 60 * 60 * 1000).unref();
+
+// Google sync: check every minute whether the interval chosen in Settings has passed (first check 30 seconds after start).
+const syncTick = () => syncIfDue(db)?.then((results) => {
+  for (const r of results) if (!r.ok) console.error(`Sync for ${r.email}: ${r.error}`);
+}).catch((e) => console.error('Sync failed:', e.message));
+setTimeout(syncTick, 30_000).unref();
+setInterval(syncTick, 60_000).unref();
 
 server.listen(port, host, () => {
   const url = `http://${host === '0.0.0.0' ? '127.0.0.1' : host}:${port}`;

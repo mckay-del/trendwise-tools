@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { html, raw, on, $, $$, modal, field, options, toast, confirmDialog, fmtDate, addDays } from '../ui.js';
 import { APP_NAME } from '../app.js';
+import { ago } from './settings.js';
 
 const SOURCE_ICON = { email: '✉', event: '◷', gtask: '✓' };
 
@@ -39,6 +40,7 @@ export async function view(ctx) {
         <h1>Board</h1>
         <span class="muted">${new Date(data.today + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</span>
         <span class="spacer"></span>
+        ${raw(syncStatus())}
         <button class="btn btn-primary" data-action="new">＋ New task</button>
       </div>
       <div class="tb-board">
@@ -51,6 +53,16 @@ export async function view(ctx) {
         <summary>Done <span class="tb-count">${data.done.length}</span></summary>
         <ul>${raw(data.done.map((t) => html`<li><button class="link" data-action="reopen" data-id="${t.id}" title="Move back to the board">↺</button> <s>${t.title}</s> <small class="muted">${t.completed_at ? new Date(t.completed_at).toLocaleDateString() : ''}</small></li>`).join(''))}</ul>
       </details>`;
+  }
+
+  function syncStatus() {
+    const accts = data.accounts;
+    if (!accts.length) return html`<a class="tb-sync muted" href="#/settings">Connect Google accounts</a>`;
+    const broken = accts.filter((a) => a.needs_reconnect || (a.last_result && !a.last_result.ok));
+    const last = accts.map((a) => a.last_sync_at).filter(Boolean).sort().at(0);
+    return html`${raw(broken.map((a) => html`<a class="pill tb-warn" href="#/settings" title="${a.last_result?.error ?? ''}">${a.email}: ${a.needs_reconnect ? 'reconnect' : 'sync failed'}</a>`).join(''))}
+      <span class="tb-sync muted" title="${accts.map((a) => `${a.email}: ${ago(a.last_sync_at)}`).join('\n')}">Synced ${ago(last)}</span>
+      <button class="btn" data-action="sync">Sync now</button>`;
   }
 
   const find = (id) => data.columns.flatMap((c) => c.tasks).find((t) => t.id === Number(id));
@@ -92,6 +104,13 @@ export async function view(ctx) {
     el.classList.add('leaving');
     await save(el.dataset.id, { status: 'done' }, 'Done ✓');
   });
+  on(ctx.el, 'click', '[data-action=sync]', async (e, b) => {
+    b.disabled = true; b.textContent = 'Syncing…';
+    try {
+      const failed = (await api.post('/api/sync')).filter((r) => !r.ok);
+      if (failed.length) toast(failed.map((r) => `${r.email}: ${r.error}`).join('\n'), 'error');
+    } finally { await load(); }
+  });
   on(ctx.el, 'click', '[data-action=reopen]', (e, b) => save(b.dataset.id, { status: 'open' }, 'Back on the board'));
   on(ctx.el, 'keydown', '.tb-card', (e, c) => {
     if (e.target !== c) return;
@@ -131,4 +150,11 @@ export async function view(ctx) {
   const cardAfter = (col, y) => $$('.tb-card:not(.dragging)', col).find((c) => { const r = c.getBoundingClientRect(); return y < r.top + r.height / 2; });
 
   await load();
+
+  // Pick up tasks added or finished on the phone: refresh every minute while this tab is showing and idle.
+  const timer = setInterval(() => {
+    if (!document.body.contains(ctx.el)) return clearInterval(timer);
+    if (document.hidden || document.querySelector('.modal-backdrop, .dragging')) return;
+    load().catch(() => {});
+  }, 60_000);
 }

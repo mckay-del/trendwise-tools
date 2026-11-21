@@ -16,6 +16,13 @@ export class Db {
     this.cache = new Map();
     this.depth = 0;
     this.raw.exec(readFileSync(join(here, 'schema.sql'), 'utf8'));
+    this.addMissingColumns();
+  }
+  /** Bring databases made by older versions up to date (CREATE TABLE IF NOT EXISTS never adds columns). */
+  addMissingColumns() {
+    for (const [table, col, type] of UPGRADES) {
+      if (!this.raw.prepare(`PRAGMA table_info(${table})`).all().some((c) => c.name === col)) this.raw.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${type}`);
+    }
   }
   stmt(sql) {
     let s = this.cache.get(sql);
@@ -44,6 +51,15 @@ export class Db {
   }
   close() { this.raw.close(); }
 }
+
+// Columns added after v0.1, as [table, column, type].
+const UPGRADES = [
+  ['accounts', 'scopes', 'TEXT'],
+  ['accounts', 'gtasks_list_id', 'TEXT'],
+  ['accounts', 'gtasks_synced_at', 'TEXT'],
+  ['tasks', 'gtask_updated', 'TEXT'],
+  ['tasks', 'gtask_dirty', 'INTEGER NOT NULL DEFAULT 0'],
+];
 
 function norm(v) {
   if (v === undefined) return null;

@@ -1,6 +1,6 @@
 {
   "name": "mckays-taskboard",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "McKay's Taskboard: one board for tasks from every Google Workspace account",
   "private": true,
   "type": "module",

@@ -34,7 +34,7 @@ export function columnForDue(due, now = todayIn()) {
   return 'later';
 }
 
-const endPosition = (db, col) => (db.get(`SELECT MAX(position) AS p FROM tasks WHERE status = 'open' AND col = ?`, col)?.p ?? 0) + 1;
+export const endPosition = (db, col) => (db.get(`SELECT MAX(position) AS p FROM tasks WHERE status = 'open' AND col = ?`, col)?.p ?? 0) + 1;
 
 function cleanDue(v) {
   if (v === undefined) return undefined;
@@ -49,7 +49,7 @@ export function createTask(db, body) {
   const due = cleanDue(body.due_date) ?? null;
   const col = body.col === undefined ? columnForDue(due) : body.col;
   if (!COL_IDS.includes(col)) throw bad('Unknown column');
-  const id = db.insert(`INSERT INTO tasks (title, notes, col, due_date, position, origin, pinned) VALUES (?,?,?,?,?,?,?)`,
+  const id = db.insert(`INSERT INTO tasks (title, notes, col, due_date, position, origin, pinned, gtask_dirty) VALUES (?,?,?,?,?,?,?,1)`,
     title, str(body.notes, 5000), col, due, endPosition(db, col), 'manual', body.col !== undefined && body.col !== columnForDue(due));
   return getTask(db, id);
 }
@@ -77,8 +77,11 @@ export function updateTask(db, id, body) {
     const completedAt = status === 'done' ? (t.status === 'done' ? t.completed_at : new Date().toISOString()) : null;
     if (status === 'open' && t.status !== 'open' && !moving) position = endPosition(db, col);
 
-    db.run(`UPDATE tasks SET title=?, notes=?, due_date=?, status=?, col=?, position=?, pinned=?, completed_at=?, updated_at=datetime('now') WHERE id=?`,
-      title, notes, due === undefined ? t.due_date : due, status, col, position, pinned, completedAt, id);
+    const dueDate = due === undefined ? t.due_date : due;
+    // Anything Google Tasks shows (the column is written into the notes) needs pushing on the next sync.
+    const dirty = t.gtask_dirty || title !== t.title || notes !== t.notes || dueDate !== t.due_date || status !== t.status || col !== t.col;
+    db.run(`UPDATE tasks SET title=?, notes=?, due_date=?, status=?, col=?, position=?, pinned=?, completed_at=?, gtask_dirty=?, updated_at=strftime('%Y-%m-%d %H:%M:%f','now') WHERE id=?`,
+      title, notes, dueDate, status, col, position, pinned, completedAt, dirty, id);
     return getTask(db, id);
   });
 }
@@ -100,8 +103,11 @@ function renumber(db, col) {
 }
 
 export function deleteTask(db, id) {
-  getTask(db, id);
-  db.run('DELETE FROM tasks WHERE id = ?', id);
+  const t = getTask(db, id);
+  db.tx(() => {
+    if (t.gtask_id && t.account_id) db.run('INSERT INTO gtask_deletes (account_id, list_id, gtask_id) VALUES (?,?,?)', t.account_id, t.gtask_list_id, t.gtask_id);
+    db.run('DELETE FROM tasks WHERE id = ?', id);
+  });
   return { ok: true };
 }
 
@@ -116,7 +122,7 @@ export function rollForward(db, now = todayIn()) {
     for (const t of db.all(`SELECT id, col, due_date FROM tasks WHERE status = 'open' AND pinned = 0 AND due_date IS NOT NULL AND col IN ('later','week')`)) {
       const want = columnForDue(t.due_date, now);
       if (rank[want] > rank[t.col]) {
-        db.run(`UPDATE tasks SET col = ?, position = ?, updated_at = datetime('now') WHERE id = ?`, want, endPosition(db, want), t.id);
+        db.run(`UPDATE tasks SET col = ?, position = ?, gtask_dirty = 1, updated_at = strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ?`, want, endPosition(db, want), t.id);
         moved++;
       }
     }

@@ -2,6 +2,7 @@ import { api } from './api.js';
 import { html, $, on, toast } from './ui.js';
 import * as authViews from './views/auth.js';
 import * as board from './views/board.js';
+import * as settings from './views/settings.js';
 
 export const APP_NAME = "McKay's Taskboard";
 const state = { user: null, meta: null };
@@ -10,6 +11,7 @@ const ROUTES = {
   login: [authViews.login, { public: true }],
   setup: [authViews.setup, { public: true }],
   board: [board.view],
+  settings: [settings.view],
 };
 
 export function navigate(path) { location.hash = `#/${path}`; }
@@ -18,7 +20,9 @@ export function setUser(u) { state.user = u; }
 let renderSeq = 0;
 async function render() {
   const seq = ++renderSeq;
-  const path = location.hash.replace(/^#\/?/, '').split('?')[0].replace(/\/$/, '') || 'board';
+  const [rawPath, qs = ''] = location.hash.replace(/^#\/?/, '').split('?');
+  const path = rawPath.replace(/\/$/, '') || 'board';
+  const query = Object.fromEntries(new URLSearchParams(qs));
   const [fn, opts = {}] = ROUTES[path] ?? [];
   const root = $('#app');
   if (!fn) { root.innerHTML = html`<div class="center-page"><h1>Page not found</h1><a href="#/board">Go to the board</a></div>`; return; }
@@ -37,7 +41,8 @@ async function render() {
     host.className = 'view';
     host.innerHTML = '<div class="loading">Loading…</div>';
     $('#main').append(host);
-    await fn({ el: host, state, navigate, reload: render });
+    root.querySelectorAll('.tb-nav a').forEach((a) => a.classList.toggle('active', a.getAttribute('href') === `#/${path}`));
+    await fn({ el: host, state, query, navigate, reload: render });
   } catch (e) {
     console.error(e);
     ($('#main .view') ?? root).innerHTML = html`<div class="error-page"><h2>Couldn't load this page</h2><p>${e.message}</p><a href="#/board" class="btn">Back to the board</a></div>`;
@@ -49,6 +54,7 @@ function shell() {
     <header class="topbar">
       <img class="tb-logo" src="/img/trendwise-logo.png" alt="TrendWise Business Services">
       <strong class="tb-name">${APP_NAME}</strong>
+      <nav class="tb-nav"><a href="#/board">Board</a><a href="#/settings">Settings</a></nav>
       <span class="spacer"></span>
       <span class="user">${state.user.name}</span>
       <button class="btn btn-ghost" data-action="logout">Sign out</button>
