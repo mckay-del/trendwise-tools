@@ -128,8 +128,10 @@ test('two-way Google Tasks sync', async () => {
   await syncAll(db);
   const goneRemote = [...tb.tasks.values()].find((t) => t.title === 'Delete me');
   tasks.deleteTask(db, gone.id);
+  g.edit(email, tb.id, goneRemote.id, { notes: 'touched on the phone before the next sync' });
   await syncAll(db);
   assert.equal(goneRemote.deleted, true);
+  assert.equal(card('Delete me'), undefined, 'not re-imported while its deletion was pending');
   const phone2 = g.addRemote(email, 'default', { title: 'Phone then deleted' });
   await syncAll(db);
   assert.equal(card('Phone then deleted').status, 'open');

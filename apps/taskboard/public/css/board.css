@@ -70,3 +70,9 @@
 .tb-primary { display: flex; align-items: center; gap: .3rem; font-size: .85rem; color: var(--muted); cursor: pointer; }
 @media (max-width: 600px) { .tb-nav { margin-left: 0; } .tb-name { display: none; } }
 .tb-settings .card > .field { margin-top: 1.2rem; }
+
+/* Assistant */
+.tb-ai { color: var(--gold); font-size: .85em; }
+.tb-why { background: var(--surface-2); border-left: 3px solid var(--gold); padding: .6rem .8rem; font-size: .88rem; }
+.tb-why p { margin: 0 0 .35rem; }
+.tb-settings .card p.bad { margin: .3rem 0; }

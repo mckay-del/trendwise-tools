@@ -21,7 +21,7 @@ export async function view(ctx) {
     return html`<article class="tb-card" draggable="true" data-id="${t.id}" tabindex="0" aria-label="${t.title}">
       <button class="tb-check" data-action="done" aria-label="Mark done" title="Mark done"></button>
       <div class="tb-card-body" data-action="edit">
-        <div class="tb-title">${t.title}</div>
+        <div class="tb-title">${t.origin === 'ai' ? raw('<span class="tb-ai" title="Added by the assistant">✦</span> ') : ''}${t.title}</div>
         <div class="tb-meta">
           ${dueLabel ? raw(html`<span class="tb-due ${overdue ? 'overdue' : ''}">${overdue ? 'Overdue · ' : ''}${dueLabel}</span>`) : ''}
           ${t.account_email ? raw(html`<span class="tb-acct" style="--acct:${t.account_color}">${t.account_email.split('@')[1]}</span>`) : ''}
@@ -60,7 +60,10 @@ export async function view(ctx) {
     if (!accts.length) return html`<a class="tb-sync muted" href="#/settings">Connect Google accounts</a>`;
     const broken = accts.filter((a) => a.needs_reconnect || (a.last_result && !a.last_result.ok));
     const last = accts.map((a) => a.last_sync_at).filter(Boolean).sort().at(0);
-    return html`${raw(broken.map((a) => html`<a class="pill tb-warn" href="#/settings" title="${a.last_result?.error ?? ''}">${a.email}: ${a.needs_reconnect ? 'reconnect' : 'sync failed'}</a>`).join(''))}
+    const as = data.assistant ?? {};
+    const aiNote = !as.configured && as.pending ? html`<a class="pill" href="#/settings" title="Add an Anthropic API key in Settings">${as.pending} email${as.pending === 1 ? '' : 's'}/event${as.pending === 1 ? '' : 's'} waiting for the assistant</a>`
+      : as.error ? html`<a class="pill tb-warn" href="#/settings" title="${as.error}">Assistant: needs attention</a>` : '';
+    return html`${raw(aiNote)}${raw(broken.map((a) => html`<a class="pill tb-warn" href="#/settings" title="${a.last_result?.error ?? ''}">${a.email}: ${a.needs_reconnect ? 'reconnect' : 'sync failed'}</a>`).join(''))}
       <span class="tb-sync muted" title="${accts.map((a) => `${a.email}: ${ago(a.last_sync_at)}`).join('\n')}">Synced ${ago(last)}</span>
       <button class="btn" data-action="sync">Sync now</button>`;
   }
@@ -79,6 +82,7 @@ export async function view(ctx) {
           ${raw(field('Due date', html`<input name="due_date" type="date" value="${t?.due_date ?? ''}">`))}
         </div>
         ${raw(field('Notes', html`<textarea name="notes" rows="4" maxlength="5000">${t?.notes ?? ''}</textarea>`))}
+        ${t?.ai_reason || t?.source_link ? raw(html`<div class="tb-why">${t.ai_reason ? raw(html`<p><span class="tb-ai">✦</span> ${t.ai_reason}</p>`) : ''}${t.source_link ? raw(html`<a href="${t.source_link}" target="_blank" rel="noopener noreferrer">Open the ${t.source_kind === 'event' ? 'calendar event' : 'email'} ↗</a>`) : ''}</div>`) : ''}
         ${!isNew ? raw(html`<div class="btn-row"><button type="button" class="btn btn-small" data-action="dismiss">Not a task</button><button type="button" class="btn btn-small btn-ghost danger" data-action="delete">Delete</button></div>`) : ''}
       </div>`,
       submitLabel: isNew ? 'Add task' : 'Save',

@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS accounts (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- Emails, events and Google Tasks the agent has seen (filled from step 3).
+-- Emails and events the assistant has seen.
 CREATE TABLE IF NOT EXISTS sources (
   id INTEGER PRIMARY KEY,
   account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
@@ -44,7 +44,13 @@ CREATE TABLE IF NOT EXISTS sources (
   snippet TEXT,
   link TEXT,
   content_hash TEXT,
-  processed_at TEXT,
+  meta TEXT,                   -- JSON: from/to/date for email, start/end/response for events
+  excerpt TEXT,                -- short text the assistant reads (capped)
+  occurred_at TEXT,            -- last message time / event start (ISO)
+  processed_at TEXT,           -- when the assistant last looked at this version
+  attempts INTEGER NOT NULL DEFAULT 0,
+  last_error TEXT,
+  dismissed INTEGER NOT NULL DEFAULT 0,  -- its card was deleted or marked "Not a task": never make another
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE (account_id, kind, external_id)
 );

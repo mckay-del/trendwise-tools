@@ -31,7 +31,10 @@ export function buildRouter(db) {
 
   // --- Tasks (changes go to Google Tasks a few seconds later) ---
   const thenSync = (v) => { syncSoon(db); return v; };
-  r.get('/api/board', () => ({ ...tasks.board(db), accounts: google.listAccounts(db) }));
+  r.get('/api/board', () => {
+    const s = settings.publicSettings(db);
+    return { ...tasks.board(db), accounts: google.listAccounts(db), assistant: { configured: s.ai_configured, pending: s.ai_pending, error: s.ai_last_run?.error && s.ai_last_run.error !== 'no_key' ? s.ai_last_run.error : null } };
+  });
   r.post('/api/tasks', (ctx) => thenSync(tasks.createTask(db, ctx.body)));
   r.get('/api/tasks/:id', (ctx) => tasks.getTask(db, id(ctx)));
   r.put('/api/tasks/:id', (ctx) => thenSync(tasks.updateTask(db, id(ctx), ctx.body)));

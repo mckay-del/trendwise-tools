@@ -2,7 +2,7 @@
 
 One board for the tasks hiding in every Google Workspace account: email, calendar and Google Tasks, sorted into **Today / This week / Later / Waiting**.
 
-Built on the same stack as [Trendwise Ledger](../ledger/README.md): Node.js ≥ 22.13 (built-in `node:sqlite`), a vanilla-JS page, one SQLite file.
+Built on the same stack as [Trendwise Ledger](../ledger/README.md): Node.js ≥ 22.13 (built-in `node:sqlite`), a vanilla-JS page, one SQLite file. The assistant uses Anthropic's official SDK (`@anthropic-ai/sdk`), the app's one dependency.
 
 ## Status
 
@@ -10,19 +10,20 @@ Built on the same stack as [Trendwise Ledger](../ledger/README.md): Node.js ≥ 
 |---|---|---|
 | 1 | Board with manual tasks: columns, drag and drop, due dates, done list, daily roll-forward | **Done (v0.1)** |
 | 2 | Connect Google accounts (OAuth, encrypted tokens), two-way Google Tasks sync | **Done (v0.2)** |
-| 3 | Read-only Gmail + Calendar sync across all accounts | Next |
-| 4 | Claude triage: turns emails and events into tasks, picks the column, explains why | Planned |
-| 5 | Run on the Tailscale server, backups | Planned |
+| 3 | Read-only Gmail + Calendar sync across all accounts | **Done (v0.3)** |
+| 4 | Claude triage: turns emails and events into tasks, picks the column, explains why | **Done (v0.3)** |
+| 5 | Run on the Tailscale server, backups | Next |
 
 Access to Google will be **read-only for Gmail and Calendar**. The only thing it writes is Google Tasks, so tasks show up on your phone. It never sends email or changes events.
 
 ## Quick start
 
-**Windows:** double-click **`Start Taskboard.bat`**. Run **`Create Desktop Shortcut.bat`** once for a desktop icon.
+**Windows:** double-click **`Start Taskboard.bat`**. The first time (and after an update that needs it), it installs the Anthropic SDK with `npm install`, which takes under a minute and needs an internet connection. Run **`Create Desktop Shortcut.bat`** once for a desktop icon.
 
 **Any system:**
 ```bash
 cd apps/taskboard
+npm install          # once: installs the Anthropic SDK
 npm start            # http://127.0.0.1:3100
 ```
 
@@ -38,6 +39,41 @@ How Google Tasks sync works:
 - **Both sides changed:** the board's version wins, but completing a task anywhere completes it.
 - **Schedule:** every 15 minutes by default (Settings → Sync), or press **Sync now**. Each account syncs separately, so one that needs reconnecting doesn't hold up the others.
 - **Disconnect** removes the board's access to that account. Its tasks stay on the board as your own.
+
+## The assistant (email and calendar → cards)
+
+**Turning it on:**
+1. Create an API key at **console.anthropic.com** (API keys). It's billed per use, separately from a Claude subscription.
+2. Paste it into **Settings → Assistant** and click Save. It's stored encrypted, like the Google sign-ins.
+
+**What it reads** on every sync, in each connected account:
+- **Gmail, read-only:** the inbox, but not the Promotions, Social, Updates or Forums tabs. The first sync looks at the last 7 days (up to 150 threads); after that, only threads with new messages.
+- **Calendar, read-only:** the next 14 days. Only events that need your reply, or that have other people or notes and are within a week.
+
+**What it does:**
+- Claude reads the latest messages in each thread and decides whether each one needs a card. If it does, it chooses the column and due date and writes a one-line reason, which shows on hover and in the edit dialog.
+- Cards it adds are marked ✦ and link back to the email or event.
+- When a thread moves on, the same card is updated: you replied, so it moves to **Waiting**; they confirmed, so it's completed.
+- New cards go to Google Tasks too.
+
+**Ways to steer it:**
+- **Notes for the assistant** (Settings): plain sentences, e.g. "Anything from the IRS goes in Today. Ignore Stripe notifications."
+- **Not a task** (in a card's edit dialog) or deleting the card: that email or event won't produce a card again.
+- **Moving a card yourself:** it stays where you put it.
+
+**Cost and model:**
+- The default model is Claude Opus 5.5, the most careful about what counts as a task, run at low effort. Sonnet 5.5 and Haiku 5.5 are cheaper options in Settings.
+- Emails are sent in batches of 20, so a typical day of mail costs a few cents with Opus.
+- Settings shows this month's requests, tokens and estimated cost.
+
+**Safety:**
+- Claude gets no tools. It only returns a list of suggested cards in a fixed format, which the app checks before changing anything.
+- An email that tries to give it instructions can at most produce a wrong card. It can't send, delete or forward anything.
+- Email text is sent to Anthropic only for this. See [`legal/privacy-policy.html`](legal/privacy-policy.html).
+
+**If something goes wrong:**
+- Without a key, or if Anthropic is unavailable, email is still read and simply waits. The board shows how many items are waiting.
+- An item Claude can't answer three times is set aside.
 
 ## Using the board
 
@@ -58,6 +94,7 @@ How Google Tasks sync works:
 | `TASKBOARD_TZ` | `America/Los_Angeles` | When "today" starts |
 | `NODE_ENV=production` | — | Secure session cookie (serve behind HTTPS) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | — | Google app details, instead of entering them in Settings |
+| `ANTHROPIC_API_KEY` | — | API key for the assistant, instead of entering it in Settings |
 | `TASKBOARD_PUBLIC_URL` | address you opened | Fixes the OAuth redirect address, e.g. `https://taskboard.your-tailnet.ts.net` |
 
 Run the tests with `npm test`.

@@ -86,6 +86,8 @@ function pullOne(db, account, listId, r, stats) {
   const local = db.get('SELECT * FROM tasks WHERE account_id = ? AND gtask_id = ?', account.id, r.id);
   if (!local) {
     if (r.deleted || r.status === 'completed' || !title) return;
+    // Deleted on the board and waiting to be deleted in Google: don't bring it back.
+    if (db.get('SELECT 1 FROM gtask_deletes WHERE account_id = ? AND gtask_id = ?', account.id, r.id)) return;
     const due = dueFromGoogle(r.due);
     const col = columnForDue(due);
     db.insert(`INSERT INTO tasks (title, notes, col, due_date, position, origin, account_id, gtask_id, gtask_list_id, gtask_updated)

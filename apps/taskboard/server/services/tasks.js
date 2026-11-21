@@ -82,6 +82,8 @@ export function updateTask(db, id, body) {
     const dirty = t.gtask_dirty || title !== t.title || notes !== t.notes || dueDate !== t.due_date || status !== t.status || col !== t.col;
     db.run(`UPDATE tasks SET title=?, notes=?, due_date=?, status=?, col=?, position=?, pinned=?, completed_at=?, gtask_dirty=?, updated_at=strftime('%Y-%m-%d %H:%M:%f','now') WHERE id=?`,
       title, notes, dueDate, status, col, position, pinned, completedAt, dirty, id);
+    // "Not a task": the assistant won't make a card from this email or event again.
+    if (status === 'dismissed' && t.source_id) db.run('UPDATE sources SET dismissed = 1 WHERE id = ?', t.source_id);
     return getTask(db, id);
   });
 }
@@ -106,6 +108,7 @@ export function deleteTask(db, id) {
   const t = getTask(db, id);
   db.tx(() => {
     if (t.gtask_id && t.account_id) db.run('INSERT INTO gtask_deletes (account_id, list_id, gtask_id) VALUES (?,?,?)', t.account_id, t.gtask_list_id, t.gtask_id);
+    if (t.source_id) db.run('UPDATE sources SET dismissed = 1 WHERE id = ?', t.source_id);
     db.run('DELETE FROM tasks WHERE id = ?', id);
   });
   return { ok: true };

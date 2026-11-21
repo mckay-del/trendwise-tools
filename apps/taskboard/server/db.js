@@ -59,6 +59,13 @@ const UPGRADES = [
   ['accounts', 'gtasks_synced_at', 'TEXT'],
   ['tasks', 'gtask_updated', 'TEXT'],
   ['tasks', 'gtask_dirty', 'INTEGER NOT NULL DEFAULT 0'],
+  // v0.3
+  ['sources', 'meta', 'TEXT'],
+  ['sources', 'excerpt', 'TEXT'],
+  ['sources', 'occurred_at', 'TEXT'],
+  ['sources', 'attempts', 'INTEGER NOT NULL DEFAULT 0'],
+  ['sources', 'last_error', 'TEXT'],
+  ['sources', 'dismissed', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 function norm(v) {

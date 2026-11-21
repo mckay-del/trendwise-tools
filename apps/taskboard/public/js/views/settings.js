@@ -17,8 +17,22 @@ export function syncSummary(a) {
   if (!r) return 'Not synced yet';
   if (!r.ok) return `Last sync failed ${ago(a.last_sync_at)}: ${r.error}`;
   const t = r.tasks ?? {};
-  const bits = [t.imported && `${t.imported} new from Google`, t.completed && `${t.completed} completed`, (t.created || t.pushed) && `${(t.created ?? 0) + (t.pushed ?? 0)} sent`].filter(Boolean);
+  const mail = (r.mail?.new ?? 0) + (r.mail?.changed ?? 0);
+  const cal = (r.calendar?.new ?? 0) + (r.calendar?.changed ?? 0);
+  const bits = [mail && `${mail} email${mail === 1 ? '' : 's'}`, cal && `${cal} event${cal === 1 ? '' : 's'}`, t.imported && `${t.imported} new from Google Tasks`, t.completed && `${t.completed} completed`, (t.created || t.pushed) && `${(t.created ?? 0) + (t.pushed ?? 0)} sent`].filter(Boolean);
   return `Synced ${ago(a.last_sync_at)}${bits.length ? ` · ${bits.join(', ')}` : ''}`;
+}
+
+function aiStatus(s) {
+  const u = s.ai_usage;
+  const run = s.ai_last_run;
+  const lines = [];
+  if (run?.error && run.error !== 'no_key') lines.push(html`<p class="bad">${run.error}</p>`);
+  if (run?.at) lines.push(html`<p class="muted">Last ran ${ago(run.at)}: looked at ${run.sent}, added ${run.created}, updated ${run.updated}, completed ${run.completed}.</p>`);
+  if (s.ai_pending) lines.push(html`<p class="muted">${s.ai_pending} email${s.ai_pending === 1 ? '' : 's'} or event${s.ai_pending === 1 ? '' : 's'} waiting${s.ai_configured ? ' for the next sync' : ' for an API key'}.</p>`);
+  const tok = (n) => (n < 10_000 ? n.toLocaleString() : `${Math.round(n / 1000).toLocaleString()}k`);
+  if (u.requests) lines.push(html`<p class="muted">This month: ${u.requests} request${u.requests === 1 ? '' : 's'}, ${tok(u.input_tokens)} tokens in, ${tok(u.output_tokens)} out, about $${u.est_cost_usd.toFixed(2)}.</p>`);
+  return lines.join('');
 }
 
 export async function view(ctx) {
@@ -55,7 +69,19 @@ export async function view(ctx) {
             <button class="btn btn-primary" data-action="connect" ${s.google_client_configured ? '' : raw('disabled')}>＋ Connect Google account</button>
             ${accounts.length ? raw('<button class="btn" data-action="sync">Sync now</button>') : ''}
           </div>
-          <p class="muted tb-fine">The board can <b>read</b> email and calendars (used from the next version) and <b>add and update</b> Google Tasks. It never sends email or changes calendar events.</p>
+          <p class="muted tb-fine">The board can <b>read</b> email and calendars and <b>add and update</b> Google Tasks. It never sends email or changes calendar events. It looks at your inbox (not the Promotions, Social, Updates or Forums tabs) and the next two weeks of your calendar.</p>
+        </section>
+
+        <section class="card">
+          <h3>Assistant <small>${s.ai_configured ? '✓ on' : 'add an API key to turn email into cards'}</small></h3>
+          <p class="muted">Claude reads new email and upcoming meetings and adds cards for what needs doing, with a due date and a one-line reason. Email text is sent to Anthropic only for this.</p>
+          ${raw(aiStatus(s))}
+          <form class="stack" data-form="ai">
+            ${s.ai_from_env ? raw('<p class="muted">API key set by the ANTHROPIC_API_KEY environment variable.</p>') : raw(field('Anthropic API key', html`<input name="anthropic_api_key" type="password" autocomplete="off" placeholder="${s.ai_configured ? 'Saved. Leave blank to keep it' : 'sk-ant-…'}">`, { hint: 'From console.anthropic.com → API keys. Stored encrypted on this computer.' }))}
+            ${raw(field('Model', html`<select name="ai_model">${raw(options(s.ai_models, s.ai_model))}</select>`, { hint: 'Opus is the most careful about what counts as a task; Haiku costs the least.' }))}
+            ${raw(field('Notes for the assistant', html`<textarea name="ai_notes" rows="4" maxlength="3000" placeholder="e.g. Anything from the IRS or a state tax agency goes in Today. Ignore Stripe and QuickBooks notifications.">${s.ai_notes}</textarea>`, { hint: 'Plain sentences. Used for every email from now on.' }))}
+            <div class="btn-row"><button class="btn btn-primary">Save assistant settings</button>${s.ai_configured && !s.ai_from_env ? raw('<button type="button" class="btn btn-ghost danger" data-action="forget-key">Forget key</button>') : ''}</div>
+          </form>
         </section>
 
         <section class="card">
@@ -103,10 +129,17 @@ export async function view(ctx) {
   on(ctx.el, 'change', '[data-action=color]', async (e, i) => { await api.put(`/api/accounts/${i.dataset.id}`, { color: i.value }); toast('Color saved'); });
   on(ctx.el, 'change', 'input[name=primary]', async (e, i) => { await api.put('/api/settings', { primary_account_id: Number(i.value) }); toast('Primary account saved'); await load(); });
   on(ctx.el, 'focusin', '[data-action=select]', (e, i) => i.select());
+  on(ctx.el, 'click', '[data-action=forget-key]', async () => {
+    if (!(await confirmDialog('Forget the Anthropic API key? New email will wait until you add one again.', { okLabel: 'Forget key' }))) return;
+    await api.put('/api/settings', { anthropic_api_key_remove: true });
+    toast('Key forgotten');
+    await load();
+  });
   on(ctx.el, 'submit', '[data-form]', async (e, f) => {
     e.preventDefault();
     const body = Object.fromEntries(new FormData(f));
     if (body.google_client_secret === '') delete body.google_client_secret;
+    if (body.anthropic_api_key === '') delete body.anthropic_api_key;
     try { await api.put('/api/settings', body); toast('Saved'); await load(); }
     catch (err) { toast(err.message, 'error'); }
   });
