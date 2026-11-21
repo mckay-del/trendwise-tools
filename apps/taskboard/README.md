@@ -18,7 +18,7 @@ Access to Google will be **read-only for Gmail and Calendar**. The only thing it
 
 ## Quick start
 
-**Windows:** double-click **`Start Taskboard.bat`**. The first time (and after an update that needs it), it installs the Anthropic SDK with `npm install`, which takes under a minute and needs an internet connection. Run **`Create Desktop Shortcut.bat`** once for a desktop icon.
+**Windows:** double-click **`Start Taskboard.bat`**. Run **`Start Automatically With Windows.bat`** once to have the board start quietly (minimized) every time you sign in, so it keeps syncing whenever the computer is on. To undo that, press Win+R, type `shell:startup`, and delete "McKay's Taskboard". The first time (and after an update that needs it), it installs the Anthropic SDK with `npm install`, which takes under a minute and needs an internet connection. Run **`Create Desktop Shortcut.bat`** once for a desktop icon.
 
 **Any system:**
 ```bash
@@ -37,6 +37,7 @@ How Google Tasks sync works:
 - **From Google:** open tasks in every list of every connected account appear on the board, with the account's colored badge. Tasks added, edited, completed or deleted on your phone show up here on the next sync. The board refreshes itself every minute.
 - **To Google:** board tasks are written to a **Taskboard** list in their account; tasks you add by hand go to the **Primary** account. The column is noted at the end of the task's notes, e.g. `[Taskboard: Today]`, because Google Tasks has no columns. Changes are sent a few seconds after you make them.
 - **Both sides changed:** the board's version wins, but completing a task anywhere completes it.
+- **When the computer is off:** nothing syncs, but Google keeps everything. Your phone's Google Tasks work as usual. When the board starts again it catches up: Google Tasks and Calendar pick up where they left off. For Gmail, if the board was off longer than Gmail keeps its change history (about a week), it searches the inbox back to the last good sync, up to 60 days.
 - **Schedule:** every 15 minutes by default (Settings → Sync), or press **Sync now**. Each account syncs separately, so one that needs reconnecting doesn't hold up the others.
 - **Disconnect** removes the board's access to that account. Its tasks stay on the board as your own.
 

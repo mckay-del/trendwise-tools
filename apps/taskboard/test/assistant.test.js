@@ -12,7 +12,7 @@ const { Db } = await import('../server/db.js');
 const google = await import('../server/services/google.js');
 const { saveSettings, publicSettings } = await import('../server/services/settings.js');
 const { syncAll } = await import('../server/services/sync.js');
-const { syncMail, messageText } = await import('../server/services/mail.js');
+const { syncMail, messageText, lookbackDays } = await import('../server/services/mail.js');
 const { syncCalendar } = await import('../server/services/calendar.js');
 const { ai, triage, cleanItem, SCHEMA } = await import('../server/services/triage.js');
 const tasks = await import('../server/services/tasks.js');
@@ -108,6 +108,25 @@ test('Gmail: recent inbox first, then only new messages; tabs and old mail skipp
   g.addEmail(EMAIL, { subject: 'After expiry', body: 'New one' });
   r = await syncMail(db, account());
   assert.ok(sources().some((x) => x.title === 'After expiry'));
+});
+
+test('Gmail catch-up: after time off, the inbox is searched back to the last good sync', async () => {
+  const now = Date.parse('2026-12-20T12:00:00Z');
+  assert.equal(lookbackDays({}, now), 7, 'first sync');
+  assert.equal(lookbackDays({ gmail_history_id: '5', gmail_synced_at: '2026-12-19T12:00:00Z' }, now), 2, 'at least 2 days');
+  assert.equal(lookbackDays({ gmail_history_id: '5', gmail_synced_at: '2026-12-08T12:00:00Z' }, now), 13, '12 days off + 1');
+  assert.equal(lookbackDays({ gmail_history_id: '5', gmail_synced_at: '2026-06-01T00:00:00Z' }, now), 60, 'capped');
+
+  await syncMail(db, account());
+  // The board is off for 12 days; Gmail's history no longer reaches back that far.
+  db.run(`UPDATE accounts SET gmail_synced_at = ?`, new Date(Date.now() - 12 * DAY).toISOString());
+  g.users.get(EMAIL).historyFloor = 1e9;
+  g.addEmail(EMAIL, { subject: 'Ten days ago', body: 'Please call me', daysAgo: 10 });
+  g.addEmail(EMAIL, { subject: 'Twenty days ago', body: 'Old', daysAgo: 20 });
+  const r = await syncMail(db, account());
+  assert.equal(r.caught_up_days, 13);
+  assert.deepEqual(sources().map((s) => s.title), ['Ten days ago']);
+  assert.ok(Date.now() - Date.parse(account().gmail_synced_at) < 60_000);
 });
 
 test('email text: quoted replies cut, HTML turned to text, long mail capped', () => {

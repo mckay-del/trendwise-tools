@@ -66,6 +66,7 @@ const UPGRADES = [
   ['sources', 'attempts', 'INTEGER NOT NULL DEFAULT 0'],
   ['sources', 'last_error', 'TEXT'],
   ['sources', 'dismissed', 'INTEGER NOT NULL DEFAULT 0'],
+  ['accounts', 'gmail_synced_at', 'TEXT'],
 ];
 
 function norm(v) {

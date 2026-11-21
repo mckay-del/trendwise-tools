@@ -7,6 +7,18 @@ const API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 const SKIP_LABELS = ['CATEGORY_PROMOTIONS', 'CATEGORY_SOCIAL', 'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'SPAM', 'TRASH'];
 const QUERY = (days) => `in:inbox newer_than:${days}d -category:promotions -category:social -category:updates -category:forums`;
 export const FIRST_SYNC_CAP = 150;
+export const FIRST_SYNC_DAYS = 7;
+export const MAX_CATCH_UP_DAYS = 60;
+
+/**
+ * How far back to search when Gmail's change history can't be used: 7 days on the first sync; after the board was
+ * off long enough for the history to expire, back to the last good sync (plus a day of overlap), at most 60 days.
+ */
+export function lookbackDays(account, now = Date.now()) {
+  if (!account.gmail_history_id || !account.gmail_synced_at) return FIRST_SYNC_DAYS;
+  const since = Math.ceil((now - Date.parse(account.gmail_synced_at)) / 86400_000) + 1;
+  return Math.min(Math.max(since, 2), MAX_CATCH_UP_DAYS);
+}
 const EXCERPT_PER_MESSAGE = 1500;
 
 async function threadIdsFromSearch(db, account, q, cap) {
@@ -102,8 +114,9 @@ export function threadToSource(account, thread) {
   };
 }
 
-export async function syncMail(db, account) {
+export async function syncMail(db, account, { now = Date.now() } = {}) {
   const stats = { checked: 0, new: 0, changed: 0 };
+  const startedAt = new Date(now).toISOString();
   let ids;
   let historyId = account.gmail_history_id;
   if (historyId) {
@@ -111,9 +124,12 @@ export async function syncMail(db, account) {
     if (h) { ids = h.ids; historyId = h.historyId; }
   }
   if (!ids) {
-    // First sync, or Gmail's history expired: read the recent inbox and start the history from now.
+    // First sync, or Gmail's history expired (the board was off for a while): search the inbox back to the last
+    // good sync, newest first, and start the history from now.
     historyId = (await gfetch(db, account, `${API}/profile`)).historyId;
-    ids = await threadIdsFromSearch(db, account, QUERY(account.gmail_history_id ? 2 : 7), FIRST_SYNC_CAP);
+    const days = lookbackDays(account, now);
+    stats.caught_up_days = account.gmail_history_id ? days : undefined;
+    ids = await threadIdsFromSearch(db, account, QUERY(days), FIRST_SYNC_CAP * (account.gmail_history_id ? 2 : 1));
   }
   for (const id of ids) {
     let thread;
@@ -125,6 +141,6 @@ export async function syncMail(db, account) {
     const r = upsertSource(db, account.id, src);
     if (r !== 'same') stats[r]++;
   }
-  db.run('UPDATE accounts SET gmail_history_id = ? WHERE id = ?', String(historyId), account.id);
+  db.run('UPDATE accounts SET gmail_history_id = ?, gmail_synced_at = ? WHERE id = ?', String(historyId), startedAt, account.id);
   return stats;
 }

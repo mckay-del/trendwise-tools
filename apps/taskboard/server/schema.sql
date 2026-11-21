@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS accounts (
   color TEXT NOT NULL DEFAULT '#b08d57',
   refresh_token_enc TEXT,
   gmail_history_id TEXT,
+  gmail_synced_at TEXT,        -- ISO time of the last successful Gmail sync (for catching up after time off)
   calendar_sync TEXT,          -- JSON {calendarId: syncToken}
   last_sync_at TEXT,
   last_result TEXT,            -- JSON
