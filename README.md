@@ -14,7 +14,8 @@ Internal reference documents and tools for Trendwise Business Services.
 ├── roadmap/
 │   └── index.html                     ← interactive build roadmap (hosted via Cloudflare Pages)
 └── apps/
-    └── ledger/                        ← Trendwise Ledger: QBO-style bookkeeping app (see apps/ledger/README.md)
+    ├── ledger/                        ← Trendwise Ledger: QBO-style bookkeeping app (see apps/ledger/README.md)
+    └── taskboard/                     ← McKay's Taskboard: tasks from every Google Workspace account on one board (see apps/taskboard/README.md)
 ```
 
 ## Key files

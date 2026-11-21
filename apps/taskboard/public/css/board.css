@@ -1,0 +1,51 @@
+/* McKay's Taskboard: board layout (brand tokens come from app.css) */
+.tb-shell { min-height: 100vh; display: flex; flex-direction: column; }
+.tb-logo { height: 22px; width: auto; }
+.tb-name { color: #fafaf8; font: 400 1.15rem/1 var(--serif); letter-spacing: -.01em; }
+.topbar .user { color: var(--nav-text); }
+#main { flex: 1; padding: 1.2rem 1.4rem 2rem; outline: none; }
+.tb-footer { text-align: right; color: var(--faint); font-size: .75rem; padding: .4rem 1.4rem; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+
+.tb-toolbar { display: flex; align-items: baseline; gap: .9rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.tb-board { display: grid; grid-template-columns: repeat(4, minmax(220px, 1fr)); gap: 1rem; align-items: start; }
+.tb-col { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); min-height: 200px; display: flex; flex-direction: column; transition: border-color .1s; }
+.tb-col[data-col=today] { border-top: 2px solid var(--gold); }
+.tb-col.drop { border-color: var(--brand); background: var(--brand-soft); }
+.tb-col > header { display: flex; align-items: center; gap: .5rem; padding: .7rem .8rem .5rem; }
+.tb-col h2 { margin: 0; font-size: 1.1rem; flex: 1; }
+.tb-count { font-size: .75rem; font-weight: 600; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-radius: 99px; padding: 0 .5rem; }
+.tb-list { display: flex; flex-direction: column; gap: .5rem; padding: 0 .6rem .8rem; flex: 1; }
+.tb-empty { color: var(--faint); font-size: .85rem; text-align: center; margin: 1.2rem 0; }
+
+.tb-card { display: flex; gap: .55rem; align-items: flex-start; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .6rem .65rem; cursor: grab; transition: opacity .15s, transform .15s; }
+.tb-card:hover { border-color: var(--faint); }
+.tb-card:focus-visible { outline: 2px solid var(--brand); }
+.tb-card.dragging { opacity: .4; }
+.tb-card.drop-before { box-shadow: 0 -3px 0 var(--brand); }
+.tb-card.leaving { opacity: 0; transform: translateX(12px); }
+.tb-check { flex: none; width: 18px; height: 18px; margin-top: 2px; border: 1.5px solid var(--faint); border-radius: 50%; background: none; cursor: pointer; padding: 0; }
+.tb-check:hover { border-color: var(--ok); background: var(--ok-soft); }
+.tb-card-body { flex: 1; min-width: 0; cursor: pointer; }
+.tb-title { font-weight: 500; overflow-wrap: anywhere; }
+.tb-meta { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-top: .25rem; font-size: .78rem; color: var(--muted); }
+.tb-meta:empty { display: none; }
+.tb-due.overdue { color: var(--bad); font-weight: 600; }
+.tb-acct { border-left: 3px solid var(--acct, var(--gold)); padding-left: .35rem; }
+.tb-src { font-size: .9rem; line-height: 1; }
+.tb-pin { color: var(--gold); font-size: .6rem; }
+.tb-reason { margin-top: .3rem; font-size: .78rem; color: var(--muted); font-style: italic; display: none; }
+.tb-card:hover .tb-reason, .tb-card:focus-within .tb-reason { display: block; }
+
+.tb-done { margin-top: 1.4rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: .6rem 1rem; }
+.tb-done summary { cursor: pointer; font-weight: 600; }
+.tb-done ul { list-style: none; padding: 0; margin: .6rem 0 0; display: grid; gap: .3rem; }
+.tb-done s { color: var(--muted); }
+
+@media (max-width: 1000px) { .tb-board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  #main { padding: 1rem; }
+  .tb-board { grid-template-columns: 1fr; }
+  .tb-logo, .topbar .user { display: none; }
+  .grid-2 { grid-template-columns: 1fr; }
+}
