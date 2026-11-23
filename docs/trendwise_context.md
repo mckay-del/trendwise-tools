@@ -181,7 +181,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 ---
 
 ## Package 1 — Starter: "Get Found"
-**Pricing:** $750–1,000 one-time setup + $247/month recurring
+**Pricing:** $750 one-time setup + $247/month recurring
 
 ### One-Time Setup Deliverables
 - One-page professional website (mobile-first, GHL AI Studio)
@@ -287,7 +287,7 @@ Pulled from the Terms of Service and compliance memos so branding never writes a
 | White-glove onboarding | — | — | — | ✓ |
 | Response time | 48-hour | 48-hour | 24-hour | Same-day |
 | **Monthly retainer** | **$247** | **$397** | **$697** | **$997** |
-| **One-time setup** | **$750–1,000** | **$1,000** | **$1,500** | **$2,000** |
+| **One-time setup** | **$750** | **$1,000** | **$1,500** | **$2,000** |
 
 ---
 
@@ -752,7 +752,7 @@ AI Front Desk arrives two ways — as a standalone add-on OR bundled in All-in-O
 
 Then the recurring plan bills on the **anchor date** (see billing-cycle policy below), not every 30 days from signing. **Setup covers the build; the first month + monthly cover running/hosting the system — collected as a lump at signing, then recurring anchors to the 1st/15th.** The first month is NOT folded into setup (folding it in would discount build labor by a month's subscription and erode tier margin).
 
-**Setup fee floors (editable upward):** Starter $750–1,000 · Growth $1,000 · Pro $1,500 · All-in-One $2,000.
+**Setup fee floors (editable upward):** Starter $750 · Growth $1,000 · Pro $1,500 · All-in-One $2,000.
 
 **Annual option:** the 11-for-12 discount applies to the **recurring side only**, not setup. Annual clients pay the full setup fee + the discounted annual prepayment. Setup is a one-time build charge regardless of monthly vs. annual billing.
 
