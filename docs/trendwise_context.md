@@ -7,8 +7,12 @@
 ## Agency Overview
 
 - **Business name:** Trendwise Business Services (trade name of K. McKay Larsen EA, Ltd.)
-- **Location:** Las Vegas, NV
-- **Target market:** Local small service businesses (nail salons, med spas, HVAC, contractors, real estate agents, restaurants)
+- **Location:** Based in Las Vegas, NV — serving trades nationwide. Las Vegas stays the local-SEO and Google Business Profile focus; out-of-state clients come through outreach and referrals.
+- **Target market:** Home-service trades — HVAC, plumbing, garage doors, pool service, pest control, electrical, roofing, solar, landscaping
+- **Ideal client size:** Solo owner-operator up to a crew of ~10. Past that, businesses usually run industry-specific software (ServiceTitan, Jobber, etc.) and have office staff answering phones.
+- **Delivery:** Same service everywhere. Setup and onboarding run over Zoom; in-person meetings (e.g. a sales pitch) are available in Las Vegas only — no onsite work promised out of state.
+- **Sister business:** Trendwise Business Consulting (TBC) — business setup and light tax planning, also a trade name of K. McKay Larsen EA, Ltd. TBS and TBC may openly refer clients to each other but operate separately (separate engagement letters, GHL sub-accounts, and financial tracking). Word referrals as a handoff ("we work with Trendwise Business Consulting for…"), never as one business standing behind the other's work.
+- **Entity plan:** TBS will be spun into its own LLC owned by K. McKay Larsen EA, Ltd. once it reaches **$1,500/mo in recurring fees or its 3rd active client, whichever comes first** — to wall off TBS liability from the Ltd. and from TBC. Until then there is no liability separation between the two trade names. TBC stays under the Ltd. for now.
 - **Platform:** GoHighLevel (GHL) agency plan with SaaS mode + Stripe billing
 - **Core differentiator:** AI chat widget + missed-call text-back + lead automation delivered in 48 hours
 
@@ -299,9 +303,9 @@ A broadcast campaign is a single mass message — sent via SMS, email, or both �
 Unlike automated workflow messages (which fire automatically based on a trigger like a missed call or new lead), a broadcast is manually initiated for a specific purpose — a promotion, a seasonal offer, a reactivation push, or an announcement.
 
 **Examples:**
-- A nail salon sending "20% off gel sets this weekend only — book now" to all past customers
+- A pest control company sending "spring pre-treatment special — book this week" to all past customers
 - An HVAC company sending "summer AC tune-up special — book before June 30" to their full list
-- A med spa sending "we miss you — it's been 90 days, here's a welcome-back offer" to lapsed clients
+- A pool service sending "it's been a year since your last filter clean — here's a returning-customer rate" to lapsed clients
 
 **What it is NOT:**
 - A one-to-one reply to a specific lead (that is a conversation)
@@ -330,7 +334,7 @@ A recurring service where Trendwise uses GHL Content AI + Social Planner to gene
 
 **Requires Social Planner**, so available on Growth, Pro, and All-in-One — not Starter. Included at a base cadence (e.g., 3 posts/week) in the All-in-One Growth System; sold as a recurring addon on Growth and Pro.
 
-**Best for:** businesses that know they should post but never do — salons, med spas, restaurants.
+**Best for:** businesses that know they should post but never do — especially visual trades with before/after work (roofing, landscaping, pool service, solar).
 
 ### Custom CRM Navigation Links
 Custom links added to the left sidebar navigation inside the client's GHL portal. Links can point to any URL — Google Business profile, booking page, Facebook page, training videos, Google Analytics, or any other tool the client uses regularly. Configured during onboarding. Increases portal engagement and reduces support requests.
@@ -358,7 +362,7 @@ Available on any tier that supports the underlying feature. Billed monthly unles
 | Addon | Price | Best For |
 |---|---|---|
 | AI Front Desk (inbound voice AI) | $397/mo + $250 setup | Any tier; included in All-in-One. Businesses losing leads to missed calls — after hours or while busy. Inbound only. Enable GHL AI Employee unlimited ($97/mo) on the sub-account to cap cost. |
-| Content automation (social + email) | $150–300/mo + $150–250 setup | Businesses that know they should post but never do — salons, med spas, restaurants (Growth, Pro; included base in All-in-One) |
+| Content automation (social + email) | $150–300/mo + $150–250 setup | Businesses that know they should post but never do — roofing, landscaping, pool service, solar (Growth, Pro; included base in All-in-One) |
 | Quarterly light-touch retainer | $100/quarter | Clients who decline monthly but want seasonal updates |
 
 ## One-Time Addons
@@ -565,7 +569,7 @@ All fields required to populate the website copy template and AI chat widget tra
 | Field | Placeholder | Notes |
 |---|---|---|
 | Business name | `[BUSINESS NAME]` | Legal or DBA name used publicly |
-| Business type / industry | `[BUSINESS TYPE]` | e.g. "nail salon", "HVAC contractor" |
+| Business type / industry | `[BUSINESS TYPE]` | e.g. "pool service", "HVAC contractor" |
 | Owner first + last name | `[OWNER NAME]` | Used in About section |
 | Year established | `[YEAR]` | Used in About section |
 | Origin story (1–2 sentences) | `[ORIGIN STORY]` | Why they started — collected in intake |
@@ -649,7 +653,7 @@ Populate the AI Front Desk voice agent from these. See the separate **AI Front D
 
 ### Section 1 — About Your Business
 - Business name
-- Business type / industry (dropdown: Nail/Beauty, Med Spa, HVAC/Contractor, Real Estate, Restaurant, Other)
+- Business type / industry (dropdown: HVAC, Plumbing, Garage Doors, Pool Service, Pest Control, Electrical, Roofing, Solar, Landscaping, Other)
 - Owner full name
 - Year established
 - In 1–2 sentences, why did you start this business? *(origin story)*
@@ -869,4 +873,4 @@ SMS features (missed-call text-back, reminders, review requests) require A2P 10D
 
 ---
 
-*Last updated: August 2026 | Trendwise Business Services | Las Vegas, NV*
+*Last updated: November 2026 | Trendwise Business Services | Las Vegas, NV*
